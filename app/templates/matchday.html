@@ -288,7 +288,7 @@
       </div>
       <div class="risk-note-text">
         Optional. Pro Spieltag ein Spiel wählbar.<br>
-        Richtige Tendenz: ×2 · Falsche Tendenz: Punkte abgezogen · Unentschieden: kein Effekt.
+        Richtige Tendenz: Punkte ×2 · Falsche Tendenz: −10 Punkte.
       </div>
     </div>
   </div>
@@ -303,13 +303,14 @@
       <button class="info-modal-close" onclick="closeModal('modal-scoring')">✕</button>
       <div class="info-modal-title">PUNKTESYSTEM</div>
       <div class="info-modal-body">
-        <div class="info-row"><span class="info-pts info-pts-green">+4</span><span>Richtige Tendenz (Sieg/Unentschieden)</span></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+5</span><span>Exaktes Ergebnis (ersetzt Tendenz)</span></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+3</span><span>Richtiger Torunterschied (ersetzt Tendenz)</span></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Richtige Auswärtstore</span></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Richtige Gesamttore</span></div>
+        <div class="info-note" style="margin-bottom:0.5rem">Je Spiel zählt die höchste zutreffende Kategorie:</div>
+        <div class="info-row"><span class="info-pts info-pts-green">+2</span><span><strong>Richtige Tendenz</strong> – Heimsieg, Unentschieden oder Auswärtssieg korrekt</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+3</span><span><strong>Richtige Tordifferenz</strong> – Sieger korrekt und Tordifferenz korrekt</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+4</span><span><strong>Exaktes Ergebnis</strong> – alle Tore exakt richtig getippt</span></div>
         <div class="info-sep"></div>
-        <div class="info-row info-row-special"><span class="info-pts">×R</span><span>Raritätsfaktor: ×(2 − Anteil) – selten gewählt = höherer Faktor (max ×2.0)</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span><strong>Richtige Gesamttore</strong> – Gesamtzahl der Tore korrekt (zusätzlich)</span></div>
+        <div class="info-sep"></div>
+        <div class="info-row info-row-special"><span class="info-pts">×R</span><span>Raritätsfaktor: ×(2 − Anteil deiner Tendenz), max ×2.0</span></div>
         <div class="info-row info-row-special"><span class="info-pts">×2</span><span>Deutschland-Spiel: alle Punkte ×2</span></div>
         <div class="info-sep"></div>
         <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Pro Spiel: richtiger Tendenz-Tipp + größte Tordifferenz im Tipp = Bonuspunkt</span></div>
@@ -318,9 +319,8 @@
           <img src="{{ url_for('static', filename='risk_icon_small.png') }}" alt="" class="info-risk-icon">
           HOCHRISIKOSPIEL
         </div>
-        <div class="info-row info-row-risk"><span class="info-pts info-pts-purple">×2</span><span>Richtige Tendenz → alle Punkte ×2</span></div>
-        <div class="info-row info-row-risk info-row-neg"><span class="info-pts info-pts-red">−</span><span>Falsche Tendenz → Punkte abgezogen!</span></div>
-        <div class="info-row info-row-risk"><span class="info-pts info-pts-gray">±0</span><span>Unentschieden → kein Effekt</span></div>
+        <div class="info-row info-row-risk"><span class="info-pts info-pts-purple">×2</span><span>Richtige Tendenz → Punkte dieses Spiels ×2</span></div>
+        <div class="info-row info-row-risk info-row-neg"><span class="info-pts info-pts-red">−10</span><span>Falsche Tendenz → 10 Punkte Abzug</span></div>
       </div>
     </div>
     <div class="info-modal-right">
@@ -363,14 +363,14 @@
         <div class="info-row"><span class="info-pts">⏰</span><span>Tippen bis kurz vor dem jeweiligen Anpfiff</span></div>
         <div class="info-row"><span class="info-pts">🔒</span><span>Jedes Spiel sperrt einzeln bei Anpfiff</span></div>
         <div class="info-sep"></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+4</span><span>Richtige Tendenz</span></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+5</span><span>Exaktes Ergebnis</span></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+3</span><span>Richtiger Torunterschied</span></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Auswärtstore korrekt</span></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Gesamttore korrekt</span></div>
-        <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Pro Spiel: richtiger Tendenz-Tipp + größte Tordifferenz im Tipp = Bonuspunkt</span></div>
+        <div class="info-note" style="margin-bottom:0.4rem">Höchste zutreffende Kategorie zählt:</div>
+        <div class="info-row"><span class="info-pts info-pts-green">+2</span><span>Richtige Tendenz</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+3</span><span>Richtige Tordifferenz</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+4</span><span>Exaktes Ergebnis</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Richtige Gesamttore (zusätzlich)</span></div>
+        <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Bonuspunkt: richtige Tendenz + größte Tordifferenz im Tipp</span></div>
         <div class="info-sep"></div>
-        <div class="info-row info-row-risk info-row-neg"><span class="info-pts info-pts-red">−</span><span>Hochrisiko falsch: Punkte werden abgezogen</span></div>
+        <div class="info-row info-row-risk info-row-neg"><span class="info-pts info-pts-red">−10</span><span>Hochrisiko falsch: 10 Punkte Abzug</span></div>
       </div>
     </div>
     <div class="info-modal-right">
@@ -386,11 +386,11 @@
       <button class="info-modal-close" onclick="closeModal('modal-hochrisiko')">✕</button>
       <div class="info-modal-title">⚡ HOCHRISIKOSPIEL</div>
       <div class="info-modal-body">
-        <div class="info-row info-row-special"><span class="info-pts">×2</span><span>Richtige Tendenz → alle Punkte ×2</span></div>
-        <div class="info-row info-row-neg"><span class="info-pts info-pts-red">−</span><span>Falsche Tendenz → Punkte abgezogen!</span></div>
-        <div class="info-row"><span class="info-pts info-pts-gray">±0</span><span>Unentschieden → kein Effekt</span></div>
+        <div class="info-row info-row-special"><span class="info-pts info-pts-purple">×2</span><span>Richtige Tendenz → Punkte dieses Spiels ×2</span></div>
+        <div class="info-row info-row-neg"><span class="info-pts info-pts-red">−10</span><span>Falsche Tendenz → 10 Punkte Abzug</span></div>
         <div class="info-sep"></div>
-        <div class="info-note">Genau ein Spiel pro Spieltag. Erst möglich wenn ein Tipp abgegeben wurde. Nur für noch nicht gestartete Spiele möglich.</div>
+        <div class="info-note">Genau ein Spiel pro Spieltag wählbar. Erst möglich wenn ein Tipp gespeichert wurde. Nur für noch nicht gestartete Spiele möglich.</div>
+        <div class="info-note" style="margin-top:0.4rem">Unentschieden ist eine normale Tendenz. Wer Unentschieden tippt und das Spiel endet unentschieden, ist die Tendenz richtig.</div>
       </div>
     </div>
     <div class="info-modal-right">

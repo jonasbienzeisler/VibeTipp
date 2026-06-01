@@ -52,65 +52,37 @@
     <div class="card-title">PUNKTEBERECHNUNG</div>
     <table class="breakdown-table">
       <tbody>
-        <tr class="{% if score_bd.tendency_correct %}row-ok{% else %}row-fail{% endif %}">
-          <td class="bd-label">TENDENZ</td>
-          <td class="bd-val">{{ score_bd.tip_tendency | tendenz_label | upper }} → {{ score_bd.actual_tendency | tendenz_label | upper }}</td>
-          <td class="bd-pts">{{ '+4' if score_bd.tendency_correct else '0' }}</td>
-        </tr>
-
-        {% if score_bd.exact_result_pts > 0 %}
+        {% if score_bd.base_category == 'exact' %}
         <tr class="row-ok">
           <td class="bd-label">EXAKTES ERGEBNIS</td>
           <td class="bd-val">{{ score_bd.tip_home }}:{{ score_bd.tip_away }} = {{ score_bd.actual_home }}:{{ score_bd.actual_away }}</td>
-          <td class="bd-pts">+{{ score_bd.exact_result_pts }}</td>
+          <td class="bd-pts">+4</td>
         </tr>
-        {% elif score_bd.goal_diff_pts > 0 %}
+        {% elif score_bd.base_category == 'goal_diff' %}
         <tr class="row-ok">
-          <td class="bd-label">TORDIFFERENZ</td>
-          <td class="bd-val">KORREKT</td>
-          <td class="bd-pts">+{{ score_bd.goal_diff_pts }}</td>
+          <td class="bd-label">RICHTIGE TORDIFFERENZ</td>
+          <td class="bd-val">{{ score_bd.tip_tendency | tendenz_label | upper }} · DIFF KORREKT</td>
+          <td class="bd-pts">+3</td>
         </tr>
-        {% endif %}
-
-        {% if score_bd.home_goals_pts > 0 %}
+        {% elif score_bd.base_category == 'tendency' %}
         <tr class="row-ok">
-          <td class="bd-label">HEIMTORE EXAKT</td>
-          <td class="bd-val">{{ score_bd.tip_home }} = {{ score_bd.actual_home }}</td>
-          <td class="bd-pts">+{{ score_bd.home_goals_pts }}</td>
+          <td class="bd-label">RICHTIGE TENDENZ</td>
+          <td class="bd-val">{{ score_bd.tip_tendency | tendenz_label | upper }}</td>
+          <td class="bd-pts">+2</td>
         </tr>
-        {% endif %}
-
-        {% if score_bd.away_goals_pts > 0 %}
-        <tr class="row-ok">
-          <td class="bd-label">AUSWÄRTSTORE EXAKT</td>
-          <td class="bd-val">{{ score_bd.tip_away }} = {{ score_bd.actual_away }}</td>
-          <td class="bd-pts">+{{ score_bd.away_goals_pts }}</td>
+        {% else %}
+        <tr class="row-fail">
+          <td class="bd-label">TENDENZ</td>
+          <td class="bd-val">{{ score_bd.tip_tendency | tendenz_label | upper }} → {{ score_bd.actual_tendency | tendenz_label | upper }}</td>
+          <td class="bd-pts">0</td>
         </tr>
         {% endif %}
 
         {% if score_bd.total_goals_pts > 0 %}
         <tr class="row-ok">
-          <td class="bd-label">
-            {% if score_bd.total_goals_pts == 2 %}GESAMTTORE EXAKT{% else %}GESAMTTORE (±1){% endif %}
-          </td>
-          <td class="bd-val">TIP={{ score_bd.tip_home + score_bd.tip_away }} | IST={{ score_bd.actual_home + score_bd.actual_away }}</td>
-          <td class="bd-pts">+{{ score_bd.total_goals_pts }}</td>
-        </tr>
-        {% endif %}
-
-        {% if not score_bd.tendency_correct and score_bd.exactness_effective > 0 %}
-        <tr class="row-warn">
-          <td class="bd-label">TEILPUNKTE (CAP)</td>
-          <td class="bd-val">MAX. 2 BEI FALSCHER TENDENZ</td>
-          <td class="bd-pts">+{{ "%.1f" | format(score_bd.exactness_effective) }}</td>
-        </tr>
-        {% endif %}
-
-        {% if score_bd.goalrich_pts > 0 %}
-        <tr class="row-ok">
-          <td class="bd-label">TORREICH-BONUS</td>
-          <td class="bd-val">{{ score_bd.tip_home + score_bd.tip_away }} UND {{ score_bd.actual_home + score_bd.actual_away }} TORE</td>
-          <td class="bd-pts">+{{ score_bd.goalrich_pts }}</td>
+          <td class="bd-label">RICHTIGE GESAMTTORE</td>
+          <td class="bd-val">{{ score_bd.tip_home + score_bd.tip_away }} = {{ score_bd.actual_home + score_bd.actual_away }}</td>
+          <td class="bd-pts">+1</td>
         </tr>
         {% endif %}
 
@@ -142,17 +114,15 @@
         {% endif %}
 
         {% if score_bd.is_risk %}
-        <tr class="row-{% if score_bd.risk_result == 'double' %}ok{% elif score_bd.risk_result == 'deduct' %}fail{% else %}info{% endif %}">
+        <tr class="row-{% if score_bd.risk_result == 'double' %}ok{% else %}fail{% endif %}">
           <td class="bd-label">⚡ HOCHRISIKOSPIEL</td>
           <td class="bd-val">
-            {% if score_bd.risk_result == 'double' %}RICHTIGER SIEGER × 2
-            {% elif score_bd.risk_result == 'deduct' %}FALSCHER SIEGER → ABZUG
-            {% else %}UNENTSCHIEDEN → KEIN EFFEKT{% endif %}
+            {% if score_bd.risk_result == 'double' %}RICHTIGE TENDENZ → × 2
+            {% else %}FALSCHE TENDENZ → −10{% endif %}
           </td>
           <td class="bd-pts">
             {% if score_bd.risk_result == 'double' %}× 2
-            {% elif score_bd.risk_result == 'deduct' %}ABZUG
-            {% else %}–{% endif %}
+            {% else %}−10{% endif %}
           </td>
         </tr>
         {% endif %}
