@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}VibeTipp{% endblock %} :: WM 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='retro.css') }}">
+  <script src="https://unpkg.com/htmx.org@2.0.3/dist/htmx.min.js" defer></script>
+</head>
+<body>
+
+  <!-- Full-page loading overlay (shown on form submit / page nav) -->
+  <div id="loading-overlay" class="loading-overlay" style="display:none">
+    <img src="{{ url_for('static', filename='loading_person.gif') }}" alt="Laden..." class="loading-person-gif">
+  </div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-bracket">[</span>
+        <span class="logo-text">VIBETIPP</span>
+        <span class="logo-bracket">]</span>
+        <span class="logo-sub">WM 2026</span>
+      </div>
+      {% if session.username %}
+      <nav class="main-nav">
+        <a href="{{ url_for('main.dashboard') }}" class="nav-link{% if request.endpoint == 'main.dashboard' %} active{% endif %}">DASHBOARD</a>
+        {% for md in nav_visible_matchdays %}
+        <a href="{{ url_for('main.matchday', matchday=md) }}"
+           class="nav-link{% if md == current_matchday_num %} nav-current{% endif %}{% if request.endpoint == 'main.matchday' and matchday is defined and matchday == md %} active{% endif %}">
+          {{ md | matchday_label }}
+        </a>
+        {% endfor %}
+        {% if matchdays | length > nav_visible_matchdays | length %}
+        <button class="nav-expand-btn" id="nav-expand-btn" onclick="toggleNavExpand()" title="Alle Spieltage">+</button>
+        <div id="nav-all-matchdays" class="nav-all-matchdays" style="display:none">
+          {% for md in matchdays %}
+          {% if md not in nav_visible_matchdays %}
+          <a href="{{ url_for('main.matchday', matchday=md) }}"
+             class="nav-link{% if md == current_matchday_num %} nav-current{% endif %}{% if request.endpoint == 'main.matchday' and matchday is defined and matchday == md %} active{% endif %}">
+            {{ md | matchday_label }}
+          </a>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        <a href="{{ url_for('main.turnierplan') }}" class="nav-link{% if request.endpoint == 'main.turnierplan' %} active{% endif %}">PLAN</a>
+        <a href="{{ url_for('main.leaderboard') }}" class="nav-link{% if 'leaderboard' in request.endpoint %} active{% endif %}">HIGHSCORE</a>
+        <a href="{{ url_for('main.my_tips') }}" class="nav-link{% if request.endpoint == 'main.my_tips' %} active{% endif %}">TIPPS</a>
+        <a href="{{ url_for('main.profile') }}" class="nav-link{% if request.endpoint == 'main.profile' %} active{% endif %}">PROFIL</a>
+        {% if session.role == 'admin' %}
+        <a href="{{ url_for('admin.index') }}" class="nav-link nav-admin{% if 'admin' in request.endpoint %} active{% endif %}">ADMIN</a>
+        {% endif %}
+      </nav>
+      <div class="header-user">
+        <span class="user-chip">{{ session.display_name | upper }}</span>
+        <form method="post" action="{{ url_for('auth.logout') }}" style="display:inline">
+          <button type="submit" class="btn-logout">LOGOUT</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="site-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+              <span class="flash-icon">{% if category == 'success' %}✓{% elif category == 'error' %}✗{% else %}ℹ{% endif %}</span>
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <span>VIBETIPP v1.0</span>
+    <span class="sep">::</span>
+    <span>INSTITUT WM 2026</span>
+    <span class="sep">::</span>
+    <span id="clock"></span>
+  </footer>
+
+  <!-- Floating Help Button -->
+  <button class="help-float-btn" onclick="openModal('modal-help')" title="Hilfe & Anleitung">?</button>
+
+  <!-- Help / Instructions Modal -->
+  <div id="modal-help" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-help')">
+    <div class="info-modal-box info-modal-box-help">
+      <div class="info-modal-left">
+        <button class="info-modal-close" onclick="closeModal('modal-help')">✕</button>
+        <div class="info-modal-title">❓ KANN ICH HELFEN?</div>
+        <div class="info-modal-body">
+          <div class="info-row"><span class="info-pts">📋</span><span><strong>Tipp abgeben:</strong> Gehe zu einem Spieltag, trage Heim- und Auswärtstoranzahl ein und speichere mit dem Speichern-Button.</span></div>
+          <div class="info-sep"></div>
+          <div class="info-row"><span class="info-pts">⏰</span><span><strong>Deadline:</strong> Jedes Spiel sperrt einzeln beim Anpfiff. Davor getippt und gespeichert haben!</span></div>
+          <div class="info-sep"></div>
+          <div class="info-row"><span class="info-pts info-pts-green">+4</span><span>Richtige Tendenz (Heimsieg / Unentschieden / Auswärtssieg)</span></div>
+          <div class="info-row"><span class="info-pts info-pts-green">+5</span><span>Exaktes Ergebnis (ersetzt Tendenzpunkte)</span></div>
+          <div class="info-row"><span class="info-pts info-pts-green">+3</span><span>Richtiger Torunterschied (ersetzt Tendenzpunkte)</span></div>
+          <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Richtige Auswärtstore</span></div>
+          <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Richtige Gesamttore</span></div>
+          <div class="info-sep"></div>
+          <div class="info-row info-row-special"><span class="info-pts">×R</span><span>Raritätsfaktor: ×(2 − Anteil deiner Tendenz), max ×2.0 – wer seltener tippt, bekommt mehr</span></div>
+          <div class="info-row info-row-special"><span class="info-pts">×2</span><span>Deutschland-Spiele: alle Punkte verdoppelt</span></div>
+          <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Bonuspunkt pro Spiel: Spieler mit richtiger Tendenz UND größter Tordifferenz im Tipp</span></div>
+          <div class="info-sep"></div>
+          <div class="info-row"><span class="info-pts info-pts-purple">⚡</span><span><strong>Hochrisikospiel:</strong> Einmal pro Spieltag wählbar. Richtige Tendenz → ×2. Falsche Tendenz → Punkte abgezogen!</span></div>
+          <div class="info-sep"></div>
+          <div class="info-row"><span class="info-pts">🏆</span><span><strong>Highscore:</strong> Gesamtpunkte aller Spiele. Wer am Ende vorne ist, gewinnt!</span></div>
+          <div class="info-row"><span class="info-pts">👤</span><span><strong>Profil:</strong> Anzeigenamen ändern und Zahlungsstatus einsehen.</span></div>
+        </div>
+      </div>
+      <div class="info-modal-right">
+        <img src="{{ url_for('static', filename='helper.png') }}" alt="" class="info-modal-char">
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

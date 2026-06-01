@@ -1,0 +1,25 @@
+services:
+  vibetipp:
+    build: .
+    container_name: vibetipp
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8081}:${PORT:-8081}"   # Bind to all interfaces; put a reverse proxy in front for HTTPS
+    volumes:
+      - vibetipp_data:/data
+    environment:
+      - DATA_DIR=/data
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - PORT=${PORT:-8081}
+      - SESSION_LIFETIME_HOURS=${SESSION_LIFETIME_HOURS:-24}
+      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-1}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-8081}/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  vibetipp_data:
+    driver: local

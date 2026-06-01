@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">&gt; ADMIN PANEL</h1>
+  <span class="page-sub">NUR FÜR ADMINS</span>
+</div>
+
+<!-- Admin Utilities -->
+<div class="admin-utils-bar">
+  <button onclick="window.location.reload()" class="btn btn-sm btn-secondary">↺ RELOAD</button>
+  <button onclick="window.open('{{ url_for('main.dashboard') }}', '_blank')" class="btn btn-sm btn-secondary">⊞ OPEN</button>
+  <form method="post" action="{{ url_for('admin.recalculate') }}" style="display:inline">
+    <button type="submit" class="btn btn-sm btn-secondary">⚡ PUNKTE BERECHNEN</button>
+  </form>
+  <form method="post" action="{{ url_for('admin.restart_server') }}" style="display:inline" onsubmit="return confirm('Server wirklich neu starten?')">
+    <button type="submit" class="btn btn-sm btn-danger">⚡ RESTART</button>
+  </form>
+</div>
+
+<div class="admin-grid">
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="card-title">ERGEBNISSE IMPORTIEREN</div>
+    <p class="card-desc">CSV-Datei hochladen mit Spalten: match_id;home_goals_actual;away_goals_actual;status</p>
+    <form method="post" action="{{ url_for('admin.upload') }}" enctype="multipart/form-data">
+      <div class="form-group">
+        <label class="form-label">ERGEBNIS-DATEI (.csv oder .txt, max. 1 MB)</label>
+        <input type="file" name="results_file" accept=".csv,.txt" class="form-input" required>
+      </div>
+      <button type="submit" class="btn btn-primary">&gt; HOCHLADEN & VORSCHAU</button>
+    </form>
+  </div>
+
+  <!-- Current matches -->
+  <div class="card">
+    <div class="card-title">AKTUELLE SPIELE</div>
+    <div class="admin-matches">
+      {% for md in matchdays %}
+      <div class="admin-matchday-header">SPIELTAG {{ md }}</div>
+      {% for m in match_repo.by_matchday(md) %}
+      {% set r = results.get(m.match_id) %}
+      <div class="admin-match-row" style="flex-wrap:wrap;">
+        <span class="admin-match-id">{{ m.match_id }}</span>
+        <span class="admin-teams">{{ m.home_team }} – {{ m.away_team }}</span>
+        {% if r and r.status == 'final' %}
+        <span class="admin-result badge-status-evaluated">{{ r.home_goals_actual }}:{{ r.away_goals_actual }} ✓</span>
+        {% elif r %}
+        <span class="admin-result">{{ r.status }}</span>
+        {% else %}
+        <span class="admin-result result-none">—</span>
+        {% endif %}
+        <form method="post" action="{{ url_for('admin.set_match_score', match_id=m.match_id) }}" class="admin-score-form">
+          <input type="number" name="home_goals" min="0" max="99" placeholder="H" class="admin-score-input"
+                 value="{{ r.home_goals_actual if r and r.home_goals_actual is not none else '' }}">
+          <span style="color:var(--gold);font-size:0.6rem;">:</span>
+          <input type="number" name="away_goals" min="0" max="99" placeholder="A" class="admin-score-input"
+                 value="{{ r.away_goals_actual if r and r.away_goals_actual is not none else '' }}">
+          <select name="status" class="admin-score-select">
+            <option value="scheduled" {% if not r or r.status == 'scheduled' %}selected{% endif %}>scheduled</option>
+            <option value="final" {% if r and r.status == 'final' %}selected{% endif %}>final</option>
+          </select>
+          <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.5rem;padding:0.1rem 0.4rem;">[SET]</button>
+        </form>
+      </div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Users -->
+  <div class="card">
+    <div class="card-title">NUTZER &amp; ZAHLUNGSSTATUS</div>
+    <div class="admin-users">
+      {% for user in users %}
+      <div class="admin-user-row" style="flex-wrap:wrap;gap:0.3rem;">
+        <span class="admin-user-name">{{ user.username }}</span>
+        <span class="admin-user-display">{{ user.display_name }}</span>
+        <span class="admin-user-role badge-role-{{ user.role }}">{{ user.role | upper }}</span>
+        <span class="admin-user-active">{% if user.active %}AKTIV{% else %}INAKTIV{% endif %}</span>
+        <form method="post" action="{{ url_for('admin.toggle_payment', username=user.username) }}" style="display:inline">
+          <button type="submit"
+                  class="btn btn-sm btn-pay {% if user.paid %}btn-pay-paid{% else %}btn-pay-unpaid{% endif %}"
+                  title="{% if user.paid %}Zahlung zurücksetzen{% else %}Als bezahlt markieren{% endif %}">
+            💰
+          </button>
+        </form>
+        <form method="post" action="{{ url_for('admin.adjust_user_points', username=user.username) }}" style="display:inline-flex;align-items:center;gap:0.2rem;">
+          <input type="number" name="delta" step="0.5" placeholder="±X.0" class="admin-adj-input"
+                 title="Punkteanpassung (z.B. 2.0 oder -1.5)">
+          <input type="text" name="note" placeholder="Notiz" class="admin-adj-input" style="width:70px;">
+          <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.5rem;padding:0.1rem 0.4rem;">[ADJ]</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:1rem">
+      <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary btn-sm">&gt; NUTZER ANLEGEN</a>
+    </div>
+  </div>
+
+</div>
+
+{% if team_resolution_preview %}
+<div class="card" style="margin-top:1.5rem">
+  <div class="card-title">TEAM-AUFLÖSUNG</div>
+  <p class="card-desc" style="margin-bottom:0.5rem">Platzhalter durch tatsächliche Sieger ersetzen (Ergebnisse müssen final sein)</p>
+  <div class="admin-matches" style="margin-bottom:0.75rem">
+    {% for item in team_resolution_preview %}
+    <div class="admin-match-row" style="border-left:2px solid {% if item.resolvable %}var(--green){% else %}var(--red){% endif %};gap:0.5rem;">
+      <span class="admin-match-id">{{ item.match_id }}</span>
+      <span style="font-size:0.48rem;line-height:1.6;flex:1">
+        <span style="color:var(--cyan)">H:</span> {{ item.home_current }}
+        → <strong style="color:{% if item.home_resolved %}var(--green){% else %}var(--red){% endif %}">{{ item.home_resolved or '?' }}</strong><br>
+        <span style="color:var(--cyan)">A:</span> {{ item.away_current }}
+        → <strong style="color:{% if item.away_resolved %}var(--green){% else %}var(--red){% endif %}">{{ item.away_resolved or '?' }}</strong>
+      </span>
+      <span class="badge-status-{% if item.resolvable %}evaluated{% else %}locked{% endif %}" style="font-size:0.42rem;align-self:center">
+        {% if item.resolvable %}BEREIT{% else %}AUSSTEHEND{% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% set resolvable_count = team_resolution_preview | selectattr('resolvable') | list | length %}
+  <form method="post" action="{{ url_for('admin.resolve_teams') }}">
+    <button type="submit" class="btn btn-primary btn-sm"
+            {% if resolvable_count == 0 %}disabled{% endif %}>
+      &gt; {{ resolvable_count }} TEAM{% if resolvable_count != 1 %}S{% endif %} AUFLÖSEN
+    </button>
+  </form>
+</div>
+{% endif %}
+
+<div class="admin-csv-format">
+  <div class="card-title">CSV-FORMAT</div>
+  <pre class="code-block">match_id;home_goals_actual;away_goals_actual;status
+M001;2;1;final
+M002;0;0;final
+M003;;; scheduled</pre>
+</div>
+{% endblock %}

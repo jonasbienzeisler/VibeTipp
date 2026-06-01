@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+*.env.local
+
+# User data (lives in Docker volume, not in repo)
+data/tips.csv
+data/results.csv
+data/users.txt
+data/adjustments.csv
+data/rarity_snapshots.csv
+data/audit.log
+data/player_results/
+data/*.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Dev-only / internal
+CLAUDE.md
+tasks/
+shipping/
+testing/
+
+# Binary source assets (already compiled into app/static/)
+resources/

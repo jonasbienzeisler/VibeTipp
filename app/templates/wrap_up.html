@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Spieltag {{ matchday }} – Auswertung{% endblock %}
+{% block content %}
+
+<!-- ── INTRO FLASH OVERLAY ── -->
+<div class="wrapup-intro" id="wrapup-intro">
+  <div class="wrapup-flash-text">
+    ⭐ SPIELTAG {{ matchday }}<br>
+    ABRECHNUNG ⭐
+  </div>
+</div>
+
+<div class="page-header">
+  <h1 class="page-title">&gt; ⭐ SPIELTAG {{ matchday }} – ABRECHNUNG</h1>
+  <a href="{{ url_for('main.leaderboard') }}" class="btn btn-secondary">&lt; HIGHSCORE</a>
+</div>
+
+<!-- ── PODIUM ── -->
+{% if entries %}
+<div class="card wrapup-card" style="margin-bottom:1.5rem">
+  <div class="card-title">SPIELTAG WERTUNG</div>
+  <div class="leaderboard-container">
+    <div class="leaderboard-header-row">
+      <span class="lb-col lb-rank">RNK</span>
+      <span class="lb-col lb-name">NAME</span>
+      <span class="lb-col lb-pts">PUNKTE</span>
+      <span class="lb-col lb-tend">TEND.</span>
+      <span class="lb-col lb-exact">EXAKT</span>
+      <span class="lb-col lb-risk">RISK ✓</span>
+    </div>
+
+    {% for entry in entries %}
+    <div class="leaderboard-row wrapup-card
+      {% if entry.rank == 1 %}lb-gold wrapup-winner{% elif entry.rank == 2 %}lb-silver{% elif entry.rank == 3 %}lb-bronze{% endif %}
+      {% if entry.username == session.username %}lb-me{% endif %}">
+      <span class="lb-col lb-rank">
+        {% if entry.rank == 1 %}🥇
+        {% elif entry.rank == 2 %}🥈
+        {% elif entry.rank == 3 %}🥉
+        {% else %}#{{ entry.rank }}{% endif %}
+      </span>
+      <span class="lb-col lb-name"
+            onclick="openUserModal('/api/user/{{ entry.username }}/matchday/{{ matchday }}/detail')"
+            style="cursor:pointer"
+            title="Spieltag {{ matchday }} Details">{{ entry.display_name | upper }} <span class="info-btn" style="margin-left:0.4rem;display:inline-flex;pointer-events:none">ℹ</span></span>
+      <span class="lb-col {% if entry.total_pts < 0 %}lb-pts-neg{% else %}lb-pts{% endif %}">
+        {% if entry.total_pts > 0 %}+{% endif %}{{ "%.1f"|format(entry.total_pts) }}
+      </span>
+      <span class="lb-col lb-tend">{{ entry.tendency_count }}</span>
+      <span class="lb-col lb-exact">{{ entry.exact_count }}</span>
+      <span class="lb-col lb-risk">{{ entry.risk_ok }}{% if entry.risk_fail > 0 %}/{{ entry.risk_fail }}{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── MATCH RESULTS ── -->
+<div class="card wrapup-card">
+  <div class="card-title">SPIELERGEBNISSE SPIELTAG {{ matchday }}</div>
+  <div class="admin-matches">
+    {% for item in match_items %}
+    {% set m = item.match %}
+    {% set r = item.result %}
+    <div class="admin-match-row wrapup-card">
+      <span class="admin-match-id">{{ m.match_id }}</span>
+      <span class="admin-teams">
+        {{ m.home_team | upper }} – {{ m.away_team | upper }}
+        {% if m.is_germany_game %}<span class="badge badge-germany" style="font-size:0.55rem">🇩🇪 ×2</span>{% endif %}
+      </span>
+      {% if r and r.status == 'final' %}
+      <span class="admin-result badge-status-evaluated">
+        {{ r.home_goals_actual }} : {{ r.away_goals_actual }}
+        {% if r.home_goals_actual > r.away_goals_actual %}(H)
+        {% elif r.home_goals_actual < r.away_goals_actual %}(A)
+        {% else %}(U){% endif %}
+      </span>
+      {% else %}
+      <span class="admin-result result-none">AUSSTEHEND</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── PER-PLAYER SCORES TABLE ── -->
+{% if active_matches and user_match_scores %}
+<div class="card wrapup-card" style="margin-top:1.5rem">
+  <div class="card-title">PUNKTE JE SPIELER</div>
+  <table class="wrapup-scores-table">
+    <thead class="wst-header">
+      <tr>
+        <th class="wst-th wst-name">SPIELER</th>
+        {% for m in active_matches %}
+        <th class="wst-th">{{ m.match_id }}</th>
+        {% endfor %}
+        <th class="wst-th wst-total">GESAMT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      {% set uname = entry.username %}
+      <tr>
+        <td class="wst-td wst-name"
+            onclick="openUserModal('/api/user/{{ uname }}/matchday/{{ matchday }}/detail')"
+            style="cursor:pointer"
+            title="Spieltag {{ matchday }} Details">{{ entry.display_name | upper }}</td>
+        {% for m in active_matches %}
+        {% set cell = user_match_scores.get(uname, {}).get(m.match_id) %}
+        {% set utip = cell.tip if cell else none %}
+        {% set bd = cell.bd if cell else none %}
+        <td class="wst-td">
+          {% if utip %}
+          <div style="line-height:1.4;">
+            <div style="color:var(--gold);font-size:0.45rem;">
+              {{ utip.home_goals_tip }}:{{ utip.away_goals_tip }}{% if utip.is_risk_pick %}<span style="color:var(--purple)">!</span>{% endif %}
+            </div>
+            {% if bd %}
+            <div style="color:var(--cyan);font-size:0.45rem;">{{ bd.actual_home }}:{{ bd.actual_away }}</div>
+            {% if session.role == 'admin' %}
+            <div>
+              <input type="number" step="0.1"
+                     class="admin-score-input"
+                     style="width:50px"
+                     value="{{ '%.1f'|format(bd.final_pts) }}"
+                     onchange="adminAdjustPts('{{ uname }}', '{{ m.match_id }}', this.value)">
+            </div>
+            {% else %}
+            {% if bd.final_pts > 0 %}
+            <div class="wst-pts" style="font-size:0.45rem;">+{{ '%.1f'|format(bd.final_pts) }}</div>
+            {% elif bd.final_pts < 0 %}
+            <div class="wst-pts-neg" style="font-size:0.45rem;">{{ '%.1f'|format(bd.final_pts) }}</div>
+            {% else %}
+            <div style="color:rgba(255,255,255,0.4);font-size:0.45rem;">0</div>
+            {% endif %}
+            {% endif %}
+            {% else %}
+            <div style="color:rgba(255,255,255,0.3);font-size:0.4rem;">AUSSTEHEND</div>
+            {% endif %}
+          </div>
+          {% else %}
+          <span style="color:rgba(255,255,255,0.2);font-size:0.45rem;">–</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+        <td class="wst-td wst-total">
+          {% if entry.total_pts > 0 %}
+          <span class="wst-pts">+{{ '%.1f'|format(entry.total_pts) }}</span>
+          {% elif entry.total_pts < 0 %}
+          <span class="wst-pts-neg">{{ '%.1f'|format(entry.total_pts) }}</span>
+          {% else %}
+          <span style="color:rgba(255,255,255,0.4);">0</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div style="margin-top:1rem; text-align:center;">
+  <a href="{{ url_for('main.leaderboard') }}" class="btn btn-primary">&gt; GESAMTRANKING</a>
+  <a href="{{ url_for('main.matchday', matchday=matchday) }}" class="btn btn-secondary" style="margin-left:0.5rem">SPIELTAG {{ matchday }} DETAILS</a>
+</div>
+
+<!-- User Tips Modal -->
+<div class="info-modal" id="modal-user-tips" style="display:none" onclick="if(event.target===this)closeModal('modal-user-tips')">
+  <div class="info-modal-box user-tips-modal" style="flex-direction:column;min-height:unset;background:var(--panel2);padding:1rem;">
+    <button class="info-modal-close" onclick="closeModal('modal-user-tips')" title="Schließen">✕</button>
+    <div id="user-tips-modal-body">
+      <div style="color:rgba(255,255,255,0.4);font-size:0.55rem;padding:1rem;text-align:center;">Lade...</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

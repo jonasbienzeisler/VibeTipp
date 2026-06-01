@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+{% block title %}{{ matchday | matchday_fullname }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">&gt; {{ matchday | matchday_fullname | upper }}</h1>
+  <div class="matchday-nav">
+    {% for md in matchdays %}
+    <a href="{{ url_for('main.matchday', matchday=md) }}"
+       class="btn btn-sm {% if md == matchday %}btn-active{% elif md == current_matchday_num %}btn-current-md{% else %}btn-secondary{% endif %}">
+      {{ md | matchday_label }}
+    </a>
+    {% endfor %}
+    <button class="btn btn-sm btn-info"
+            hx-get="/api/matchday/{{ matchday }}/overview"
+            hx-target="#md-overview-modal-body"
+            hx-trigger="click"
+            hx-on:htmx:after-swap="openModal('modal-md-overview')"
+            title="Tipps-Übersicht">
+      👁 ÜBERSICHT
+    </button>
+  </div>
+</div>
+
+{% set has_open = items | selectattr('locked', 'equalto', false) | list | length > 0 %}
+
+{% if has_open %}
+<!-- Single Save Button at the Top -->
+<div class="bulk-save-bar">
+  <form id="bulk-tip-form" method="post" action="{{ url_for('tips.save_bulk_tips', matchday=matchday) }}">
+    <!-- inputs injected below via form="bulk-tip-form" -->
+  </form>
+  <button type="submit" form="bulk-tip-form" class="btn btn-primary bulk-save-btn">
+    ▶ ALLE TIPPS SPEICHERN
+  </button>
+  <span class="bulk-save-hint">Tippt alle Spiele und klickt einmal hier</span>
+</div>
+{% endif %}
+
+<div class="matches-list">
+{% for item in items %}
+{% set m = item.match %}
+{% set tip = item.tip %}
+{% set result = item.result %}
+{% set bd = item.score_bd %}
+
+<div class="match-card
+  {% if item.status == 'evaluated' %}match-evaluated
+  {% elif item.status == 'locked' %}match-locked
+  {% elif item.status == 'tipped' %}match-tipped
+  {% else %}match-open{% endif %}
+  {% if item.is_risk %} match-risk{% endif %}">
+
+  <!-- Match Header -->
+  <div class="match-header">
+    <div class="match-teams">
+      <span class="team home">{{ m.home_team | upper }}</span>
+      <span class="match-sep">:</span>
+      <span class="team away">{{ m.away_team | upper }}</span>
+    </div>
+    <div class="match-badges">
+      {% if m.is_germany_game %}
+      <span class="badge badge-germany">
+        🇩🇪 ×2
+        <button class="info-btn" onclick="openModal('modal-germany')" title="Was ist der ×2 Bonus?">ℹ</button>
+      </span>
+      {% endif %}
+      <span class="badge badge-status badge-{{ item.status }}">
+        {% if item.status == 'evaluated' %}✓ AUSGEWERTET
+        {% elif item.status == 'locked' %}🔒 GESPERRT
+        {% elif item.status == 'tipped' %}● GETIPPT
+        {% else %}○ OFFEN{% endif %}
+      </span>
+      {% if item.is_risk %}
+      <span class="risk-badge-exclaim" title="Hochrisikospiel aktiv">!</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Kickoff time -->
+  <div class="match-kickoff">
+    ANPFIFF: {{ m.kickoff_at.strftime('%d.%m. %H:%M') if m.kickoff_at else 'TBD' }}
+    {% if m.kickoff_at and not item.locked %}
+    <span class="countdown-sm" data-kickoff="{{ m.kickoff_at.isoformat() }}"></span>
+    {% endif %}
+  </div>
+
+  <!-- Result (if available) -->
+  {% if result and result.status == 'final' %}
+  <div class="match-result">
+    <span class="result-label">ERGEBNIS:</span>
+    <span class="result-score">{{ result.home_goals_actual }} : {{ result.away_goals_actual }}</span>
+  </div>
+  {% endif %}
+
+  <!-- Tip input / display -->
+  <div class="match-tip-section">
+    {% if not item.locked %}
+    <div class="tip-row">
+      <!-- Inputs associated with bulk-tip-form via form attribute -->
+      <div class="tip-inputs">
+        <input type="number" name="home_goals_{{ m.match_id }}" form="bulk-tip-form"
+               min="0" max="30" step="1"
+               class="tip-input" placeholder="0"
+               value="{{ tip.home_goals_tip if tip else '' }}" required>
+        <span class="tip-colon">:</span>
+        <input type="number" name="away_goals_{{ m.match_id }}" form="bulk-tip-form"
+               min="0" max="30" step="1"
+               class="tip-input" placeholder="0"
+               value="{{ tip.away_goals_tip if tip else '' }}" required>
+      </div>
+      <form method="post" action="{{ url_for('tips.toggle_risk', match_id=m.match_id) }}" class="risk-toggle-form">
+        <button type="submit"
+                class="btn {% if item.is_risk %}btn-risk-active{% else %}btn-risk{% endif %} btn-sm btn-risk-text"
+                {% if not tip %}disabled title="Erst Tipp abgeben"{% else %}title="{% if item.is_risk %}Hochrisikospiel deaktivieren{% else %}Hochrisikospiel aktivieren{% endif %}"{% endif %}>
+          ! HOCHRISIKO
+        </button>
+      </form>
+      <button class="info-btn info-btn-tip" onclick="openModal('modal-hochrisiko')" title="Was ist ein Hochrisikospiel?">ℹ</button>
+    </div>
+
+    {% else %}
+    {% if tip %}
+    <div class="tip-display">
+      <span class="tip-label">DEIN TIPP:</span>
+      <span class="tip-score">{{ tip.home_goals_tip }} : {{ tip.away_goals_tip }}</span>
+      {% if tip.is_risk_pick %}
+      <img src="{{ url_for('static', filename='risk_icon_small.png') }}" alt="" class="badge-risk-icon">
+      <span class="badge badge-risk">HOCHRISIKO</span>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="tip-display tip-missing">
+      <span class="tip-label">NICHT GETIPPT</span>
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>
+
+  {% if bd %}
+  <div class="score-summary">
+    <a href="{{ url_for('main.tip_detail', match_id=m.match_id) }}"
+       class="btn btn-sm {% if bd.final_pts < 0 %}btn-risk{% else %}btn-info{% endif %}"
+       {% if bd.final_pts < 0 %}style="color:var(--red)"{% endif %}>
+      PUNKTE: {{ bd.final_pts | pts_fmt }} &gt;
+    </a>
+  </div>
+  {% endif %}
+
+  {% if not item.locked %}
+  <div class="rarity-panel"
+       id="rarity-{{ m.match_id }}"
+       hx-get="{{ url_for('api.live_rarity', match_id=m.match_id) }}"
+       hx-trigger="load, every 30s"
+       hx-swap="innerHTML">
+    <div class="rarity-loading">
+      <img src="{{ url_for('static', filename='loading.gif') }}" alt="Laden...">
+      RARITÄTSBONUS WIRD GELADEN...
+    </div>
+  </div>
+  {% elif result and result.status == 'final' and item.distrib %}
+  <div class="rarity-panel rarity-frozen">
+    {% set d = item.distrib %}
+    <div class="rarity-title">
+      TIPPVERTEILUNG ZUM ANPFIFF (EINGEFROREN)
+      <button class="info-btn" onclick="openModal('modal-scoring')" title="Punktesystem">ℹ</button>
+    </div>
+    <div class="rarity-bars">
+      <div class="rarity-bar">
+        <span class="rarity-label">HEIMSIEG</span>
+        <div class="bar-track"><div class="bar-fill bar-home" style="width:{{ (d.home_win_share * 100) | round(0) }}%"></div></div>
+        <span class="rarity-pct">{{ (d.home_win_share * 100) | round(1) }}%</span>
+      </div>
+      <div class="rarity-bar">
+        <span class="rarity-label">UNENTSCHIEDEN</span>
+        <div class="bar-track"><div class="bar-fill bar-draw" style="width:{{ (d.draw_share * 100) | round(0) }}%"></div></div>
+        <span class="rarity-pct">{{ (d.draw_share * 100) | round(1) }}%</span>
+      </div>
+      <div class="rarity-bar">
+        <span class="rarity-label">AUSWÄRTSSIEG</span>
+        <div class="bar-track"><div class="bar-fill bar-away" style="width:{{ (d.away_win_share * 100) | round(0) }}%"></div></div>
+        <span class="rarity-pct">{{ (d.away_win_share * 100) | round(1) }}%</span>
+      </div>
+    </div>
+    <div class="rarity-note">{{ d.total_tips }} Tipps gesamt</div>
+  </div>
+  {% endif %}
+
+</div>
+{% endfor %}
+</div>
+
+{% if has_open %}
+<!-- Bottom save button -->
+<div class="bulk-save-bar bulk-save-bar-bottom">
+  <button type="submit" form="bulk-tip-form" class="btn btn-primary bulk-save-btn">
+    ▶ ALLE TIPPS SPEICHERN
+  </button>
+</div>
+{% endif %}
+
+<!-- ── PER-USER SCORES TABLE ── -->
+{% if active_matches and user_match_scores %}
+<div class="card" style="margin-top:1.5rem;overflow-x:auto;">
+  <div class="card-title">PUNKTE JE SPIELER</div>
+  <table class="wrapup-scores-table">
+    <thead class="wst-header">
+      <tr>
+        <th class="wst-th wst-name">SPIELER</th>
+        {% for m in active_matches %}
+        <th class="wst-th" title="{{ m.home_team }} – {{ m.away_team }}">{{ m.match_id }}</th>
+        {% endfor %}
+        <th class="wst-th wst-total">GESAMT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in md_entries %}
+      {% set uname = entry.username %}
+      <tr {% if uname == session.username %}class="lb-me"{% endif %}>
+        <td class="wst-td wst-name"
+            hx-get="/api/user/{{ uname }}/tips-panel"
+            hx-target="#user-tips-modal-body"
+            hx-trigger="click"
+            hx-on:htmx:after-swap="openModal('modal-user-tips')"
+            style="cursor:pointer"
+            title="Ergebnisse anzeigen">{{ entry.display_name | upper }}</td>
+        {% for m in active_matches %}
+        {% set cell = user_match_scores.get(uname, {}).get(m.match_id) %}
+        {% set utip = cell.tip if cell else none %}
+        {% set bd = cell.bd if cell else none %}
+        <td class="wst-td">
+          {% if utip %}
+          <div style="line-height:1.4;">
+            <div style="color:var(--gold);font-size:0.45rem;">
+              {{ utip.home_goals_tip }}:{{ utip.away_goals_tip }}{% if utip.is_risk_pick %}<span style="color:var(--purple)">!</span>{% endif %}
+            </div>
+            {% if bd %}
+            <div style="color:var(--cyan);font-size:0.45rem;">{{ bd.actual_home }}:{{ bd.actual_away }}</div>
+            {% if session.role == 'admin' %}
+            <div>
+              <input type="number" step="0.1"
+                     class="admin-score-input"
+                     style="width:50px"
+                     value="{{ '%.1f'|format(bd.final_pts) }}"
+                     onchange="adminAdjustPts('{{ uname }}', '{{ m.match_id }}', this.value)">
+            </div>
+            {% else %}
+            {% if bd.final_pts > 0 %}
+            <div class="wst-pts" style="font-size:0.45rem;">+{{ '%.1f'|format(bd.final_pts) }}</div>
+            {% elif bd.final_pts < 0 %}
+            <div class="wst-pts-neg" style="font-size:0.45rem;">{{ '%.1f'|format(bd.final_pts) }}</div>
+            {% else %}
+            <div style="color:rgba(255,255,255,0.4);font-size:0.45rem;">0</div>
+            {% endif %}
+            {% endif %}
+            {% else %}
+            <div style="color:rgba(255,255,255,0.3);font-size:0.4rem;">AUSSTEHEND</div>
+            {% endif %}
+          </div>
+          {% else %}
+          <span style="color:rgba(255,255,255,0.2);font-size:0.45rem;">–</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+        <td class="wst-td wst-total">
+          {% if entry.total_pts > 0 %}
+          <span class="wst-pts">+{{ '%.1f'|format(entry.total_pts) }}</span>
+          {% elif entry.total_pts < 0 %}
+          <span class="wst-pts-neg">{{ '%.1f'|format(entry.total_pts) }}</span>
+          {% else %}
+          <span style="color:rgba(255,255,255,0.4);">0</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Hochrisiko info section -->
+<div class="risk-note-section">
+  <div class="risk-note-simple">
+    <img src="{{ url_for('static', filename='risk_icon_small.png') }}" alt="" class="risk-note-icon" aria-hidden="true">
+    <div class="risk-note-content">
+      <div class="risk-note-title">
+        HOCHRISIKOSPIEL
+        <button class="info-btn" onclick="openModal('modal-hochrisiko')" title="Mehr Infos">ℹ</button>
+      </div>
+      <div class="risk-note-text">
+        Optional. Pro Spieltag ein Spiel wählbar.<br>
+        Richtige Tendenz: ×2 · Falsche Tendenz: Punkte abgezogen · Unentschieden: kein Effekt.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── INFO MODALS ── -->
+
+<!-- Modal: Scoring / Punktesystem -->
+<div id="modal-scoring" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-scoring')">
+  <div class="info-modal-box">
+    <div class="info-modal-left">
+      <button class="info-modal-close" onclick="closeModal('modal-scoring')">✕</button>
+      <div class="info-modal-title">PUNKTESYSTEM</div>
+      <div class="info-modal-body">
+        <div class="info-row"><span class="info-pts info-pts-green">+4</span><span>Richtige Tendenz (Sieg/Unentschieden)</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+5</span><span>Exaktes Ergebnis (ersetzt Tendenz)</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+3</span><span>Richtiger Torunterschied (ersetzt Tendenz)</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Richtige Auswärtstore</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Richtige Gesamttore</span></div>
+        <div class="info-sep"></div>
+        <div class="info-row info-row-special"><span class="info-pts">×R</span><span>Raritätsfaktor: ×(2 − Anteil) – selten gewählt = höherer Faktor (max ×2.0)</span></div>
+        <div class="info-row info-row-special"><span class="info-pts">×2</span><span>Deutschland-Spiel: alle Punkte ×2</span></div>
+        <div class="info-sep"></div>
+        <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Pro Spiel: richtiger Tendenz-Tipp + größte Tordifferenz im Tipp = Bonuspunkt</span></div>
+        <div class="info-sep"></div>
+        <div class="info-risk-header">
+          <img src="{{ url_for('static', filename='risk_icon_small.png') }}" alt="" class="info-risk-icon">
+          HOCHRISIKOSPIEL
+        </div>
+        <div class="info-row info-row-risk"><span class="info-pts info-pts-purple">×2</span><span>Richtige Tendenz → alle Punkte ×2</span></div>
+        <div class="info-row info-row-risk info-row-neg"><span class="info-pts info-pts-red">−</span><span>Falsche Tendenz → Punkte abgezogen!</span></div>
+        <div class="info-row info-row-risk"><span class="info-pts info-pts-gray">±0</span><span>Unentschieden → kein Effekt</span></div>
+      </div>
+    </div>
+    <div class="info-modal-right">
+      <img src="{{ url_for('static', filename='info_char_scoring.png') }}" alt="" class="info-modal-char">
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Germany ×2 -->
+<div id="modal-germany" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-germany')">
+  <div class="info-modal-box">
+    <div class="info-modal-left">
+      <button class="info-modal-close" onclick="closeModal('modal-germany')">✕</button>
+      <div class="info-modal-title">🇩🇪 DEUTSCHLAND ×2</div>
+      <div class="info-modal-body">
+        <div class="info-row info-row-special"><span class="info-pts">×2</span><span>Alle Punkte für Deutschland-Spiele werden verdoppelt</span></div>
+        <div class="info-sep"></div>
+        <div class="info-note">Der Multiplikator gilt für alle Komponenten: Tendenz, Exakt, Torunterschied, Einzeltore und Raritätsbonus.</div>
+        <div class="info-note" style="margin-top:0.5rem">
+          Deutschland spielt in <strong>Gruppe E</strong>:<br>
+          · vs Curaçao<br>
+          · vs Elfenbeinküste<br>
+          · vs Ecuador
+        </div>
+      </div>
+    </div>
+    <div class="info-modal-right">
+      <img src="{{ url_for('static', filename='info_char_germany.png') }}" alt="" class="info-modal-char">
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Spielregeln / Deadline -->
+<div id="modal-rules" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-rules')">
+  <div class="info-modal-box">
+    <div class="info-modal-left">
+      <button class="info-modal-close" onclick="closeModal('modal-rules')">✕</button>
+      <div class="info-modal-title">SPIELREGELN</div>
+      <div class="info-modal-body">
+        <div class="info-row"><span class="info-pts">⏰</span><span>Tippen bis kurz vor dem jeweiligen Anpfiff</span></div>
+        <div class="info-row"><span class="info-pts">🔒</span><span>Jedes Spiel sperrt einzeln bei Anpfiff</span></div>
+        <div class="info-sep"></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+4</span><span>Richtige Tendenz</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+5</span><span>Exaktes Ergebnis</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+3</span><span>Richtiger Torunterschied</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Auswärtstore korrekt</span></div>
+        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Gesamttore korrekt</span></div>
+        <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Pro Spiel: richtiger Tendenz-Tipp + größte Tordifferenz im Tipp = Bonuspunkt</span></div>
+        <div class="info-sep"></div>
+        <div class="info-row info-row-risk info-row-neg"><span class="info-pts info-pts-red">−</span><span>Hochrisiko falsch: Punkte werden abgezogen</span></div>
+      </div>
+    </div>
+    <div class="info-modal-right">
+      <img src="{{ url_for('static', filename='info_char_rules.png') }}" alt="" class="info-modal-char">
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Hochrisiko -->
+<div id="modal-hochrisiko" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-hochrisiko')">
+  <div class="info-modal-box">
+    <div class="info-modal-left">
+      <button class="info-modal-close" onclick="closeModal('modal-hochrisiko')">✕</button>
+      <div class="info-modal-title">⚡ HOCHRISIKOSPIEL</div>
+      <div class="info-modal-body">
+        <div class="info-row info-row-special"><span class="info-pts">×2</span><span>Richtige Tendenz → alle Punkte ×2</span></div>
+        <div class="info-row info-row-neg"><span class="info-pts info-pts-red">−</span><span>Falsche Tendenz → Punkte abgezogen!</span></div>
+        <div class="info-row"><span class="info-pts info-pts-gray">±0</span><span>Unentschieden → kein Effekt</span></div>
+        <div class="info-sep"></div>
+        <div class="info-note">Genau ein Spiel pro Spieltag. Erst möglich wenn ein Tipp abgegeben wurde. Nur für noch nicht gestartete Spiele möglich.</div>
+      </div>
+    </div>
+    <div class="info-modal-right">
+      <img src="{{ url_for('static', filename='risk_modal_char.png') }}" alt="" class="info-modal-char">
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Raritätsbonus -->
+<div id="modal-rarity" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-rarity')">
+  <div class="info-modal-box">
+    <div class="info-modal-left">
+      <button class="info-modal-close" onclick="closeModal('modal-rarity')">✕</button>
+      <div class="info-modal-title">★ RARITÄTSFAKTOR</div>
+      <div class="info-modal-body">
+        <div class="info-row info-row-special"><span class="info-pts">×R</span><span>Wer seltener tippt als andere, wird belohnt – je weniger Spieler dieselbe Tendenz wählen, desto höher der Multiplikator</span></div>
+        <div class="info-sep"></div>
+        <div class="info-row"><span class="info-pts info-pts-green">×2.0</span><span>Maximum: du bist der Einzige mit dieser Tendenz (Anteil = 0 %)</span></div>
+        <div class="info-row"><span class="info-pts info-pts-gray">×1.0</span><span>Kein Bonus: alle tippen dieselbe Tendenz (Anteil = 100 %)</span></div>
+        <div class="info-sep"></div>
+        <div class="info-row"><span class="info-pts">📐</span><span>Formel: Faktor = 2 − Anteil deiner Tendenz</span></div>
+        <div class="info-note">Nur bei richtiger Tendenz. Multiplikator wird auf alle Basispunkte (Tendenz + Exakt + Torreich) angewendet. Der Anteil wird zum Anpfiff eingefroren.</div>
+        <div id="rarity-modal-calc"></div>
+      </div>
+    </div>
+    <div class="info-modal-right">
+      <img src="{{ url_for('static', filename='info_char_germany.png') }}" alt="" class="info-modal-char">
+    </div>
+  </div>
+</div>
+
+<!-- User Tips Modal (all users) -->
+<div class="info-modal" id="modal-user-tips" style="display:none" onclick="if(event.target===this)closeModal('modal-user-tips')">
+  <div class="info-modal-box user-tips-modal" style="flex-direction:column;min-height:unset;background:var(--panel2);padding:1rem;">
+    <button class="info-modal-close" onclick="closeModal('modal-user-tips')" title="Schließen">✕</button>
+    <div id="user-tips-modal-body">
+      <div style="color:rgba(255,255,255,0.4);font-size:0.55rem;padding:1rem;text-align:center;">Lade...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Matchday Overview Modal -->
+<div class="info-modal" id="modal-md-overview" style="display:none" onclick="if(event.target===this)closeModal('modal-md-overview')">
+  <div class="info-modal-box user-tips-modal" style="flex-direction:column;min-height:unset;background:var(--panel2);padding:1rem;max-width:95vw;">
+    <button class="info-modal-close" onclick="closeModal('modal-md-overview')" title="Schließen">✕</button>
+    <div id="md-overview-modal-body">
+      <div style="color:rgba(255,255,255,0.4);font-size:0.55rem;padding:1rem;text-align:center;">Lade...</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

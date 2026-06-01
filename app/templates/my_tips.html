@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Meine Tipps{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">&gt; MEINE TIPPS</h1>
+</div>
+
+{% for section in sections %}
+<div class="section-header">SPIELTAG {{ section.matchday }}</div>
+<div class="my-tips-list">
+{% for item in section['items'] %}
+{% set m = item.match %}
+{% set tip = item.tip %}
+{% set bd = item.score_bd %}
+
+<div class="my-tip-row
+  {% if bd %}tip-evaluated{% elif item.locked and not tip %}tip-missed{% elif tip %}tip-ok{% else %}tip-pending{% endif %}
+  {% if tip and tip.is_risk_pick %} tip-risk{% endif %}">
+
+  <div class="my-tip-match">
+    <span class="team-sm">{{ m.home_team }}</span>
+    <span class="vs-sm">–</span>
+    <span class="team-sm">{{ m.away_team }}</span>
+    {% if m.is_germany_game %}<span class="badge badge-germany badge-xs">🇩🇪</span>{% endif %}
+  </div>
+
+  <div class="my-tip-time">{{ m.kickoff_at.strftime('%d.%m %H:%M') if m.kickoff_at else '?' }}</div>
+
+  <div class="my-tip-tipp">
+    {% if tip %}
+    <span class="tip-score-sm">{{ tip.home_goals_tip }}:{{ tip.away_goals_tip }}</span>
+    {% if tip.is_risk_pick %}<span class="badge badge-risk badge-xs">⚡</span>{% endif %}
+    {% else %}
+    <span class="tip-none">–</span>
+    {% endif %}
+  </div>
+
+  <div class="my-tip-result">
+    {% if item.result and item.result.status == 'final' %}
+    <span class="result-sm">{{ item.result.home_goals_actual }}:{{ item.result.away_goals_actual }}</span>
+    {% else %}
+    <span class="result-none">?</span>
+    {% endif %}
+  </div>
+
+  <div class="my-tip-pts">
+    {% if bd %}
+    <a href="{{ url_for('main.tip_detail', match_id=m.match_id) }}" class="pts-link">
+      {{ "%.1f"|format(bd.final_pts) }} PTS
+    </a>
+    {% elif item.locked and not tip %}
+    <span class="pts-missed">NICHT GETIPPT</span>
+    {% elif not item.locked %}
+    <a href="{{ url_for('main.matchday', matchday=m.matchday) }}" class="btn btn-sm btn-primary">TIPPEN</a>
+    {% else %}
+    <span class="pts-waiting">AUSSTEHEND</span>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+</div>
+{% endfor %}
+{% endblock %}

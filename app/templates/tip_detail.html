@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Tipp Detail – {{ match.home_team }} vs {{ match.away_team }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">&gt; TIPP DETAIL</h1>
+  <a href="{{ url_for('main.matchday', matchday=match.matchday) }}" class="btn btn-secondary">&lt; ZURÜCK</a>
+</div>
+
+<div class="detail-container">
+  <!-- Match Info -->
+  <div class="card">
+    <div class="card-title">SPIEL</div>
+    <div class="detail-match">
+      <span class="team-name">{{ match.home_team | upper }}</span>
+      <span class="vs">VS</span>
+      <span class="team-name">{{ match.away_team | upper }}</span>
+    </div>
+    <div class="detail-meta">
+      <span>SPIELTAG {{ match.matchday }}</span>
+      <span class="sep">::</span>
+      <span>{{ match.kickoff_at.strftime('%d.%m.%Y %H:%M') if match.kickoff_at else 'TBD' }}</span>
+      {% if match.is_germany_game %}
+      <span class="badge badge-germany">🇩🇪 DEUTSCHLAND-SPIEL</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if tip %}
+  <div class="card">
+    <div class="card-title">DEIN TIPP</div>
+    <div class="tip-score-large">{{ tip.home_goals_tip }} : {{ tip.away_goals_tip }}</div>
+    {% if tip.is_risk_pick %}
+    <div class="badge badge-risk">⚡ HOCHRISIKOSPIEL</div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card-title">DEIN TIPP</div>
+    <div class="tip-missing">KEIN TIPP ABGEGEBEN</div>
+  </div>
+  {% endif %}
+
+  {% if result and result.status == 'final' %}
+  <div class="card">
+    <div class="card-title">ERGEBNIS</div>
+    <div class="tip-score-large result-color">{{ result.home_goals_actual }} : {{ result.away_goals_actual }}</div>
+  </div>
+  {% endif %}
+
+  {% if score_bd %}
+  <div class="card breakdown-card">
+    <div class="card-title">PUNKTEBERECHNUNG</div>
+    <table class="breakdown-table">
+      <tbody>
+        <tr class="{% if score_bd.tendency_correct %}row-ok{% else %}row-fail{% endif %}">
+          <td class="bd-label">TENDENZ</td>
+          <td class="bd-val">{{ score_bd.tip_tendency | tendenz_label | upper }} → {{ score_bd.actual_tendency | tendenz_label | upper }}</td>
+          <td class="bd-pts">{{ '+4' if score_bd.tendency_correct else '0' }}</td>
+        </tr>
+
+        {% if score_bd.exact_result_pts > 0 %}
+        <tr class="row-ok">
+          <td class="bd-label">EXAKTES ERGEBNIS</td>
+          <td class="bd-val">{{ score_bd.tip_home }}:{{ score_bd.tip_away }} = {{ score_bd.actual_home }}:{{ score_bd.actual_away }}</td>
+          <td class="bd-pts">+{{ score_bd.exact_result_pts }}</td>
+        </tr>
+        {% elif score_bd.goal_diff_pts > 0 %}
+        <tr class="row-ok">
+          <td class="bd-label">TORDIFFERENZ</td>
+          <td class="bd-val">KORREKT</td>
+          <td class="bd-pts">+{{ score_bd.goal_diff_pts }}</td>
+        </tr>
+        {% endif %}
+
+        {% if score_bd.home_goals_pts > 0 %}
+        <tr class="row-ok">
+          <td class="bd-label">HEIMTORE EXAKT</td>
+          <td class="bd-val">{{ score_bd.tip_home }} = {{ score_bd.actual_home }}</td>
+          <td class="bd-pts">+{{ score_bd.home_goals_pts }}</td>
+        </tr>
+        {% endif %}
+
+        {% if score_bd.away_goals_pts > 0 %}
+        <tr class="row-ok">
+          <td class="bd-label">AUSWÄRTSTORE EXAKT</td>
+          <td class="bd-val">{{ score_bd.tip_away }} = {{ score_bd.actual_away }}</td>
+          <td class="bd-pts">+{{ score_bd.away_goals_pts }}</td>
+        </tr>
+        {% endif %}
+
+        {% if score_bd.total_goals_pts > 0 %}
+        <tr class="row-ok">
+          <td class="bd-label">
+            {% if score_bd.total_goals_pts == 2 %}GESAMTTORE EXAKT{% else %}GESAMTTORE (±1){% endif %}
+          </td>
+          <td class="bd-val">TIP={{ score_bd.tip_home + score_bd.tip_away }} | IST={{ score_bd.actual_home + score_bd.actual_away }}</td>
+          <td class="bd-pts">+{{ score_bd.total_goals_pts }}</td>
+        </tr>
+        {% endif %}
+
+        {% if not score_bd.tendency_correct and score_bd.exactness_effective > 0 %}
+        <tr class="row-warn">
+          <td class="bd-label">TEILPUNKTE (CAP)</td>
+          <td class="bd-val">MAX. 2 BEI FALSCHER TENDENZ</td>
+          <td class="bd-pts">+{{ "%.1f" | format(score_bd.exactness_effective) }}</td>
+        </tr>
+        {% endif %}
+
+        {% if score_bd.goalrich_pts > 0 %}
+        <tr class="row-ok">
+          <td class="bd-label">TORREICH-BONUS</td>
+          <td class="bd-val">{{ score_bd.tip_home + score_bd.tip_away }} UND {{ score_bd.actual_home + score_bd.actual_away }} TORE</td>
+          <td class="bd-pts">+{{ score_bd.goalrich_pts }}</td>
+        </tr>
+        {% endif %}
+
+        {% if score_bd.rarity_factor != 1.0 %}
+        <tr class="row-base">
+          <td class="bd-label">TEILSUMME</td>
+          <td class="bd-val"></td>
+          <td class="bd-pts">{{ "%.1f" | format(score_bd.pre_rarity_pts) }}</td>
+        </tr>
+        <tr class="row-ok">
+          <td class="bd-label">RARITÄTSFAKTOR</td>
+          <td class="bd-val">SELTEN GETIPPTE TENDENZ</td>
+          <td class="bd-pts">× {{ "%.2f" | format(score_bd.rarity_factor) }}</td>
+        </tr>
+        {% endif %}
+
+        <tr class="row-base">
+          <td class="bd-label">BASISPUNKTE</td>
+          <td class="bd-val"></td>
+          <td class="bd-pts">{{ "%.1f" | format(score_bd.base_pts) }}</td>
+        </tr>
+
+        {% if score_bd.germany_multiplier == 2 %}
+        <tr class="row-germany">
+          <td class="bd-label">🇩🇪 DEUTSCHLAND-BONUS</td>
+          <td class="bd-val">× 2</td>
+          <td class="bd-pts">= {{ "%.1f" | format(score_bd.pts_after_germany) }}</td>
+        </tr>
+        {% endif %}
+
+        {% if score_bd.is_risk %}
+        <tr class="row-{% if score_bd.risk_result == 'double' %}ok{% elif score_bd.risk_result == 'deduct' %}fail{% else %}info{% endif %}">
+          <td class="bd-label">⚡ HOCHRISIKOSPIEL</td>
+          <td class="bd-val">
+            {% if score_bd.risk_result == 'double' %}RICHTIGER SIEGER × 2
+            {% elif score_bd.risk_result == 'deduct' %}FALSCHER SIEGER → ABZUG
+            {% else %}UNENTSCHIEDEN → KEIN EFFEKT{% endif %}
+          </td>
+          <td class="bd-pts">
+            {% if score_bd.risk_result == 'double' %}× 2
+            {% elif score_bd.risk_result == 'deduct' %}ABZUG
+            {% else %}–{% endif %}
+          </td>
+        </tr>
+        {% endif %}
+
+        <tr class="row-final">
+          <td class="bd-label">FINALE PUNKTE</td>
+          <td class="bd-val"></td>
+          <td class="bd-pts bd-final">{{ "%.1f" | format(score_bd.final_pts) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% if snap %}
+  <div class="card">
+    <div class="card-title">TIPPVERTEILUNG ZUM ANPFIFF</div>
+    <div class="rarity-bars">
+      <div class="rarity-bar">
+        <span class="rarity-label">HEIMSIEG</span>
+        <div class="bar-track"><div class="bar-fill bar-home" style="width:{{ (snap.home_win_share * 100) | round(0) }}%"></div></div>
+        <span class="rarity-pct">{{ (snap.home_win_share * 100) | round(1) }}%</span>
+      </div>
+      <div class="rarity-bar">
+        <span class="rarity-label">UNENTSCHIEDEN</span>
+        <div class="bar-track"><div class="bar-fill bar-draw" style="width:{{ (snap.draw_share * 100) | round(0) }}%"></div></div>
+        <span class="rarity-pct">{{ (snap.draw_share * 100) | round(1) }}%</span>
+      </div>
+      <div class="rarity-bar">
+        <span class="rarity-label">AUSWÄRTSSIEG</span>
+        <div class="bar-track"><div class="bar-fill bar-away" style="width:{{ (snap.away_win_share * 100) | round(0) }}%"></div></div>
+        <span class="rarity-pct">{{ (snap.away_win_share * 100) | round(1) }}%</span>
+      </div>
+    </div>
+    <div class="rarity-note">{{ snap.total_tips }} Tipps · Eingefroren: {{ snap.frozen_at[:16] }}</div>
+  </div>
+  {% endif %}
+
+  {% endif %}
+
+  {% if other_tips and result and result.status == 'final' %}
+  <div class="card">
+    <div class="card-title">ANDERE SPIELER</div>
+    <table class="breakdown-table">
+      <thead>
+        <tr>
+          <th class="bd-label" style="text-align:left">SPIELER</th>
+          <th class="bd-val">TIPP</th>
+          <th class="bd-val">RISK</th>
+          <th class="bd-pts">PUNKTE</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ot in other_tips %}
+        <tr class="{% if ot.bd and ot.bd.tendency_correct %}row-ok{% elif ot.bd %}row-fail{% else %}row-base{% endif %}">
+          <td class="bd-label" style="text-align:left">{{ ot.display_name | upper }}</td>
+          {% if ot.tip %}
+          <td class="bd-val">{{ ot.tip.home_goals_tip }}:{{ ot.tip.away_goals_tip }}</td>
+          <td class="bd-val">{% if ot.tip.is_risk_pick %}<span style="color:var(--purple)">!</span>{% else %}–{% endif %}</td>
+          {% else %}
+          <td class="bd-val" style="color:rgba(255,255,255,0.3)">–</td>
+          <td class="bd-val">–</td>
+          {% endif %}
+          {% if ot.bd %}
+          <td class="bd-pts {% if ot.bd.final_pts > 0 %}bd-final{% endif %}"
+              style="{% if ot.bd.final_pts < 0 %}color:var(--red){% elif ot.bd.final_pts > 0 %}color:var(--green){% endif %}">
+            {% if ot.bd.final_pts > 0 %}+{% endif %}{{ "%.1f"|format(ot.bd.final_pts) }}
+          </td>
+          {% else %}
+          <td class="bd-pts" style="color:rgba(255,255,255,0.3)">–</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+match_id;matchday;kickoff_at;home_team;away_team;is_germany_game
+M001;1;2026-06-11T21:00:00+02:00;Mexiko;Südafrika;0
+M002;1;2026-06-12T04:00:00+02:00;Südkorea;Tschechien;0
+M003;1;2026-06-12T21:00:00+02:00;Kanada;Bosnien und Herzegowina;0
+M004;1;2026-06-13T03:00:00+02:00;USA;Paraguay;0
+M005;1;2026-06-13T21:00:00+02:00;Katar;Schweiz;0
+M006;1;2026-06-14T00:00:00+02:00;Brasilien;Marokko;0
+M007;1;2026-06-14T03:00:00+02:00;Haiti;Schottland;0
+M008;1;2026-06-14T06:00:00+02:00;Australien;Türkei;0
+M009;1;2026-06-14T19:00:00+02:00;Deutschland;Curaçao;1
+M010;1;2026-06-14T22:00:00+02:00;Niederlande;Japan;0
+M011;1;2026-06-15T01:00:00+02:00;Elfenbeinküste;Ecuador;0
+M012;1;2026-06-15T04:00:00+02:00;Schweden;Tunesien;0
+M013;1;2026-06-15T18:00:00+02:00;Spanien;Kap Verde;0
+M014;1;2026-06-15T21:00:00+02:00;Belgien;Ägypten;0
+M015;1;2026-06-16T00:00:00+02:00;Saudi-Arabien;Uruguay;0
+M016;1;2026-06-16T03:00:00+02:00;Iran;Neuseeland;0
+M017;1;2026-06-16T21:00:00+02:00;Frankreich;Senegal;0
+M018;1;2026-06-17T00:00:00+02:00;Irak;Norwegen;0
+M019;1;2026-06-17T03:00:00+02:00;Argentinien;Algerien;0
+M020;1;2026-06-17T06:00:00+02:00;Österreich;Jordanien;0
+M021;1;2026-06-17T19:00:00+02:00;Portugal;DR Kongo;0
+M022;1;2026-06-17T22:00:00+02:00;England;Kroatien;0
+M023;1;2026-06-18T01:00:00+02:00;Ghana;Panama;0
+M024;1;2026-06-18T04:00:00+02:00;Usbekistan;Kolumbien;0
+M025;2;2026-06-18T18:00:00+02:00;Tschechien;Südafrika;0
+M026;2;2026-06-18T21:00:00+02:00;Schweiz;Bosnien und Herzegowina;0
+M027;2;2026-06-19T00:00:00+02:00;Kanada;Katar;0
+M028;2;2026-06-19T03:00:00+02:00;Mexiko;Südkorea;0
+M029;2;2026-06-19T21:00:00+02:00;USA;Australien;0
+M030;2;2026-06-20T00:00:00+02:00;Schottland;Marokko;0
+M031;2;2026-06-20T02:30:00+02:00;Brasilien;Haiti;0
+M032;2;2026-06-20T05:00:00+02:00;Türkei;Paraguay;0
+M033;2;2026-06-20T19:00:00+02:00;Niederlande;Schweden;0
+M034;2;2026-06-20T22:00:00+02:00;Deutschland;Elfenbeinküste;1
+M035;2;2026-06-21T02:00:00+02:00;Ecuador;Curaçao;0
+M036;2;2026-06-21T06:00:00+02:00;Tunesien;Japan;0
+M037;2;2026-06-21T18:00:00+02:00;Spanien;Saudi-Arabien;0
+M038;2;2026-06-21T21:00:00+02:00;Belgien;Iran;0
+M039;2;2026-06-22T00:00:00+02:00;Uruguay;Kap Verde;0
+M040;2;2026-06-22T03:00:00+02:00;Neuseeland;Ägypten;0
+M041;2;2026-06-22T19:00:00+02:00;Argentinien;Österreich;0
+M042;2;2026-06-22T23:00:00+02:00;Frankreich;Irak;0
+M043;2;2026-06-23T02:00:00+02:00;Norwegen;Senegal;0
+M044;2;2026-06-23T05:00:00+02:00;Jordanien;Algerien;0
+M045;2;2026-06-23T19:00:00+02:00;Portugal;Usbekistan;0
+M046;2;2026-06-23T22:00:00+02:00;England;Ghana;0
+M047;2;2026-06-24T01:00:00+02:00;Panama;Kroatien;0
+M048;2;2026-06-24T04:00:00+02:00;Kolumbien;DR Kongo;0
+M049;3;2026-06-24T21:00:00+02:00;Schweiz;Kanada;0
+M050;3;2026-06-24T21:00:00+02:00;Bosnien und Herzegowina;Katar;0
+M051;3;2026-06-25T00:00:00+02:00;Schottland;Brasilien;0
+M052;3;2026-06-25T00:00:00+02:00;Marokko;Haiti;0
+M053;3;2026-06-25T03:00:00+02:00;Tschechien;Mexiko;0
+M054;3;2026-06-25T03:00:00+02:00;Südafrika;Südkorea;0
+M055;3;2026-06-25T22:00:00+02:00;Curaçao;Elfenbeinküste;0
+M056;3;2026-06-25T22:00:00+02:00;Ecuador;Deutschland;1
+M057;3;2026-06-26T01:00:00+02:00;Japan;Schweden;0
+M058;3;2026-06-26T01:00:00+02:00;Tunesien;Niederlande;0
+M059;3;2026-06-26T04:00:00+02:00;Türkei;USA;0
+M060;3;2026-06-26T04:00:00+02:00;Paraguay;Australien;0
+M061;3;2026-06-26T21:00:00+02:00;Norwegen;Frankreich;0
+M062;3;2026-06-26T21:00:00+02:00;Senegal;Irak;0
+M063;3;2026-06-27T02:00:00+02:00;Kap Verde;Saudi-Arabien;0
+M064;3;2026-06-27T02:00:00+02:00;Uruguay;Spanien;0
+M065;3;2026-06-27T05:00:00+02:00;Ägypten;Iran;0
+M066;3;2026-06-27T05:00:00+02:00;Neuseeland;Belgien;0
+M067;3;2026-06-27T23:00:00+02:00;Panama;England;0
+M068;3;2026-06-27T23:00:00+02:00;Kroatien;Ghana;0
+M069;3;2026-06-28T01:30:00+02:00;Kolumbien;Portugal;0
+M070;3;2026-06-28T01:30:00+02:00;DR Kongo;Usbekistan;0
+M071;3;2026-06-28T04:00:00+02:00;Algerien;Österreich;0
+M072;3;2026-06-28T04:00:00+02:00;Jordanien;Argentinien;0
+M073;4;2026-06-28T21:00:00+02:00;Zweiter Gruppe A;Zweiter Gruppe B;0
+M074;4;2026-06-29T19:00:00+02:00;Erster Gruppe C;Zweiter Gruppe F;0
+M075;4;2026-06-29T22:30:00+02:00;Erster Gruppe E;Dritter Gruppe A/B/C/D/F;0
+M076;4;2026-06-30T03:00:00+02:00;Erster Gruppe F;Zweiter Gruppe C;0
+M077;4;2026-06-30T19:00:00+02:00;Zweiter Gruppe E;Zweiter Gruppe I;0
+M078;4;2026-06-30T23:00:00+02:00;Erster Gruppe I;Dritter Gruppe C/D/F/G/H;0
+M079;4;2026-07-01T03:00:00+02:00;Erster Gruppe A;Dritter Gruppe C/E/F/H/I;0
+M080;4;2026-07-01T18:00:00+02:00;Erster Gruppe L;Dritter Gruppe E/H/I/J/K;0
+M081;4;2026-07-01T22:00:00+02:00;Erster Gruppe G;Dritter Gruppe A/E/H/I/J;0
+M082;4;2026-07-02T02:00:00+02:00;Erster Gruppe D;Dritter Gruppe B/E/F/I/J;0
+M083;4;2026-07-02T21:00:00+02:00;Erster Gruppe H;Zweiter Gruppe J;0
+M084;4;2026-07-03T01:00:00+02:00;Zweiter Gruppe K;Zweiter Gruppe L;0
+M085;4;2026-07-03T05:00:00+02:00;Erster Gruppe B;Dritter Gruppe E/F/G/I/J;0
+M086;4;2026-07-03T20:00:00+02:00;Zweiter Gruppe D;Zweiter Gruppe G;0
+M087;4;2026-07-04T00:00:00+02:00;Erster Gruppe J;Zweiter Gruppe H;0
+M088;4;2026-07-04T03:30:00+02:00;Erster Gruppe K;Dritter Gruppe D/E/I/J/L;0
+M089;5;2026-07-04T19:00:00+02:00;Sieger 1. 16tel-Finale;Sieger 4. 16tel-Finale;0
+M090;5;2026-07-04T23:00:00+02:00;Sieger 3. 16tel-Finale;Sieger 6. 16tel-Finale;0
+M091;5;2026-07-05T22:00:00+02:00;Sieger 2. 16tel-Finale;Sieger 5. 16tel-Finale;0
+M092;5;2026-07-06T02:00:00+02:00;Sieger 7. 16tel-Finale;Sieger 8. 16tel-Finale;0
+M093;5;2026-07-06T21:00:00+02:00;Sieger 12. 16tel-Finale;Sieger 11. 16tel-Finale;0
+M094;5;2026-07-07T02:00:00+02:00;Sieger 10. 16tel-Finale;Sieger 9. 16tel-Finale;0
+M095;5;2026-07-07T18:00:00+02:00;Sieger 15. 16tel-Finale;Sieger 14. 16tel-Finale;0
+M096;5;2026-07-07T22:00:00+02:00;Sieger 13. 16tel-Finale;Sieger 16. 16tel-Finale;0
+M097;6;2026-07-09T22:00:00+02:00;Sieger 2. AF;Sieger 1. AF;0
+M098;6;2026-07-10T21:00:00+02:00;Sieger 5. AF;Sieger 6. AF;0
+M099;6;2026-07-11T23:00:00+02:00;Sieger 3. AF;Sieger 4. AF;0
+M100;6;2026-07-12T03:00:00+02:00;Sieger 7. AF;Sieger 8. AF;0
+M101;7;2026-07-14T21:00:00+02:00;Sieger VF 1;Sieger VF 2;0
+M102;7;2026-07-15T21:00:00+02:00;Sieger VF 3;Sieger VF 4;0
+M103;8;2026-07-18T23:00:00+02:00;Verlierer Halbfinale 1;Verlierer Halbfinale 2;0
+M104;9;2026-07-19T21:00:00+02:00;Sieger Halbfinale 1;Sieger Halbfinale 2;0

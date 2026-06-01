@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VibeTipp :: Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='retro.css') }}">
+</head>
+<body class="login-page">
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay" style="display:none">
+    <img src="{{ url_for('static', filename='loading.gif') }}" alt="Laden...">
+  </div>
+
+  <div class="login-container" style="position:relative">
+    <div class="login-header">
+      <div class="login-logo">[VIBETIPP]</div>
+      <div class="login-sub">WM 2026 TIPPRUNDE</div>
+      <div class="login-inst">INSTITUTS-INTERN &bull; NICHT ÖFFENTLICH</div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">
+          <span class="flash-icon">{% if category == 'error' %}✗{% else %}ℹ{% endif %}</span>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post" class="login-form" autocomplete="off" id="login-form">
+      <div class="form-group">
+        <label for="username" class="form-label">NUTZERNAME</label>
+        <input type="text" id="username" name="username" class="form-input"
+               autocomplete="username" autofocus required
+               value="{{ request.form.get('username', '') }}">
+      </div>
+      <div class="form-group">
+        <label for="password" class="form-label">PASSWORT</label>
+        <input type="password" id="password" name="password" class="form-input"
+               autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">
+        &gt; ANMELDEN
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <span>SYSTEM READY</span>
+      <span class="blink">_</span>
+    </div>
+  </div>
+
+  <!-- Decorative character on the right -->
+  <img src="{{ url_for('static', filename='login_character.png') }}"
+       alt="" class="login-char" aria-hidden="true">
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', function() {
+      document.getElementById('loading-overlay').style.display = 'flex';
+    });
+  </script>
+</body>
+</html>

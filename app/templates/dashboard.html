@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">&gt; DASHBOARD</h1>
+  <span class="page-sub">WILLKOMMEN, {{ session.display_name | upper }}</span>
+</div>
+
+<div class="dashboard-grid">
+
+  <!-- Status Panel -->
+  <div class="card">
+    <div class="card-title">SYSTEM STATUS</div>
+    {% if missing_count > 0 %}
+    <div class="status-line status-warn">
+      <span class="status-dot">●</span>
+      {{ missing_count }} TIPP{% if missing_count != 1 %}S{% endif %} FEHLEN
+    </div>
+    {% else %}
+    <div class="status-line status-ok">
+      <span class="status-dot">●</span>
+      ALLE TIPPS ABGEGEBEN
+    </div>
+    {% endif %}
+
+    {% if risk_matchday %}
+    {% if risk_match_id %}
+    <div class="status-line status-risk">
+      <span class="status-dot">◆</span>
+      HOCHRISIKOSPIEL: AKTIV (SPIELTAG {{ risk_matchday }})
+    </div>
+    {% else %}
+    <div class="status-line status-info">
+      <span class="status-dot">○</span>
+      HOCHRISIKOSPIEL: NICHT GESETZT (OPTIONAL)
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if soon_matches %}
+    {% for sm in soon_matches %}
+    <div class="status-line {% if not sm.has_tip %}status-warn{% else %}status-info{% endif %}">
+      <span class="status-dot">⚡</span>
+      {{ sm.match.home_team | upper }} - {{ sm.match.away_team | upper }}:
+      {% if not sm.has_tip %}NOCH KEIN TIPP!{% else %}GETIPPT{% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Next Match -->
+  <div class="card">
+    <div class="card-title">NÄCHSTES SPIEL</div>
+    {% if next_match %}
+    <div class="next-match">
+      <div class="match-teams">
+        <span class="team-name">{{ next_match.home_team | upper }}</span>
+        <span class="vs">VS</span>
+        <span class="team-name">{{ next_match.away_team | upper }}</span>
+      </div>
+      {% if next_match.is_germany_game %}
+      <div class="badge badge-germany">🇩🇪 DEUTSCHLAND-SPIEL ×2</div>
+      {% endif %}
+      <div class="kickoff-time">
+        ANPFIFF: {{ next_match.kickoff_at.strftime('%d.%m.%Y %H:%M') if next_match.kickoff_at else 'TBD' }}
+      </div>
+      {% if next_match.kickoff_at %}
+      <div class="countdown" data-kickoff="{{ next_match.kickoff_at.isoformat() }}">
+        COUNTDOWN: ...
+      </div>
+      {% endif %}
+    </div>
+    <a href="{{ url_for('main.matchday', matchday=next_match.matchday) }}" class="btn btn-primary btn-full" style="margin-top:1rem">
+      &gt; JETZT TIPPEN
+    </a>
+    {% else %}
+    <div class="status-line status-info">KEIN OFFENES SPIEL</div>
+    {% endif %}
+  </div>
+
+  <!-- Ranking -->
+  <div class="card">
+    <div class="card-title">MEIN RANG</div>
+    {% if my_rank %}
+    <div class="rank-display">
+      <span class="rank-number">#{{ my_rank }}</span>
+      <span class="rank-pts">{{ "%.1f"|format(my_pts) }} PTS</span>
+    </div>
+    <!-- Rank badge images: last.png takes priority when tied at bottom -->
+    {% if is_last %}
+    <div class="rank-badge-img-wrap">
+      <img src="{{ url_for('static', filename='last.png') }}" alt="Letzter Platz" class="rank-badge-img">
+    </div>
+    {% elif my_rank == 1 %}
+    <div class="rank-badge-img-wrap">
+      <img src="{{ url_for('static', filename='first.png') }}" alt="1. Platz" class="rank-badge-img">
+    </div>
+    {% elif my_rank == 2 %}
+    <div class="rank-badge-img-wrap">
+      <img src="{{ url_for('static', filename='second.png') }}" alt="2. Platz" class="rank-badge-img">
+    </div>
+    {% elif my_rank == 3 %}
+    <div class="rank-badge-img-wrap">
+      <img src="{{ url_for('static', filename='third.png') }}" alt="3. Platz" class="rank-badge-img">
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="rank-display">
+      <span class="rank-number">–</span>
+      <span class="rank-pts">NOCH KEINE PUNKTE</span>
+    </div>
+    <div class="rank-badge-img-wrap">
+      <img src="{{ url_for('static', filename='last.png') }}" alt="" class="rank-badge-img">
+    </div>
+    {% endif %}
+    <a href="{{ url_for('main.leaderboard') }}" class="btn btn-secondary btn-full rank-highscore-btn" style="margin-top:1rem">
+      &gt; HIGHSCORE
+    </a>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="card">
+    <div class="card-title">NAVIGATION</div>
+    <div class="quick-links">
+      {% for md in matchdays %}
+      <a href="{{ url_for('main.matchday', matchday=md) }}" class="btn btn-secondary">SPIELTAG {{ md }}</a>
+      {% endfor %}
+      <a href="{{ url_for('main.my_tips') }}" class="btn btn-secondary">MEINE TIPPS</a>
+      <a href="{{ url_for('main.leaderboard') }}" class="btn btn-secondary">HIGHSCORE</a>
+      <a href="{{ url_for('main.wrap_up') }}" class="wrapup-star-btn">⭐ SPIELTAG ERGEBNISSE</a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

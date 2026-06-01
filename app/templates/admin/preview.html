@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Import Vorschau{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">&gt; IMPORT VORSCHAU</h1>
+  <a href="{{ url_for('admin.index') }}" class="btn btn-secondary">&lt; ABBRECHEN</a>
+</div>
+
+{% if errors %}
+<div class="card error-card">
+  <div class="card-title">FEHLER IN DER DATEI</div>
+  {% for err in errors %}
+  <div class="error-line">✗ {{ err }}</div>
+  {% endfor %}
+  <p style="margin-top:1rem">Bitte die Datei korrigieren und erneut hochladen.</p>
+  <a href="{{ url_for('admin.index') }}" class="btn btn-primary">&gt; ERNEUT VERSUCHEN</a>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-title">VORSCHAU: {{ rows | length }} ERGEBNISSE</div>
+  <div class="preview-table-wrap">
+    <table class="breakdown-table">
+      <thead>
+        <tr>
+          <th>MATCH ID</th>
+          <th>HEIMTEAM</th>
+          <th>AUSWÄRTSTEAM</th>
+          <th>ERGEBNIS</th>
+          <th>STATUS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        {% if match_repo is defined %}
+          {% set m = match_repo.find(row.match_id) %}
+        {% else %}
+          {% set m = none %}
+        {% endif %}
+        <tr>
+          <td>{{ row.match_id }}</td>
+          <td>{{ m.home_team if m else '?' }}</td>
+          <td>{{ m.away_team if m else '?' }}</td>
+          <td>{% if row.status == 'final' %}{{ row.home_goals_actual }} : {{ row.away_goals_actual }}{% else %}—{% endif %}</td>
+          <td><span class="badge badge-status-{{ row.status }}">{{ row.status | upper }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if import_id %}
+  <div class="confirm-actions">
+    <form method="post" action="{{ url_for('admin.confirm_import', import_id=import_id) }}">
+      <button type="submit" class="btn btn-primary">&gt; IMPORT BESTÄTIGEN</button>
+    </form>
+    <a href="{{ url_for('admin.cancel_import', import_id=import_id) }}" class="btn btn-secondary">ABBRECHEN</a>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

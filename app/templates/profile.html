@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Profil{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">&gt; PROFIL</h1>
+</div>
+
+<div style="max-width: 520px;">
+  <div class="card">
+    <!-- Large profile image -->
+    <div class="profile-image-wrap">
+      {% if user.paid %}
+      <img src="{{ url_for('static', filename='paid.png') }}" alt="Charakter" class="profile-char-img">
+      {% else %}
+      <img src="{{ url_for('static', filename='unpaid.png') }}" alt="Charakter" class="profile-char-img">
+      {% endif %}
+    </div>
+
+    <div class="card-title">BENUTZER</div>
+
+    <div class="form-group">
+      <span class="form-label">BENUTZERNAME</span>
+      <div style="color: var(--white); font-size: 0.7rem; padding: 0.3rem 0;">{{ user.username }}</div>
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">ROLLE</span>
+      <div style="color: var(--gold); font-size: 0.65rem; padding: 0.3rem 0;">{{ user.role | upper }}</div>
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">ZAHLUNGSSTATUS</span>
+      <div style="padding: 0.3rem 0; display: flex; align-items: center; gap: 0.5rem;">
+        {% if user.paid %}
+        <span style="color: var(--green); font-size: 0.65rem;">BEZAHLT</span>
+        {% else %}
+        <a href="{{ payment_link }}" target="_blank" rel="noopener"
+           style="color: var(--red); font-size: 0.65rem; text-decoration: underline; cursor: pointer;">NOCH NICHT BEZAHLT</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="info-sep" style="margin: 0.75rem 0;"></div>
+
+    <div class="card-title">ANZEIGENAME ÄNDERN</div>
+    <form method="post" action="{{ url_for('main.profile') }}">
+      <div class="form-group">
+        <label class="form-label" for="display_name">ANZEIGENAME</label>
+        <input type="text" id="display_name" name="display_name"
+               class="form-input"
+               value="{{ user.display_name }}"
+               maxlength="50" required>
+        <span class="form-hint">Wird im Highscore und überall angezeigt. Max. 50 Zeichen.</span>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">SPEICHERN</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

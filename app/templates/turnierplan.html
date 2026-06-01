@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Turnierplan{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">&gt; TURNIERPLAN WM 2026</h1>
+</div>
+
+<!-- ── GROUP STAGE ── -->
+<div class="card-title" style="margin-bottom:0.75rem">VORRUNDE – GRUPPEN A BIS L</div>
+<div class="tp-groups-grid">
+{% for letter in ['A','B','C','D','E','F','G','H','I','J','K','L'] %}
+{% set rows = sorted_groups.get(letter, []) %}
+<div class="tp-group-card">
+  <div class="tp-group-title">GRUPPE {{ letter }}</div>
+  <table class="tp-table">
+    <thead>
+      <tr>
+        <th class="tp-th-team">TEAM</th>
+        <th>SP</th><th>S</th><th>U</th><th>N</th>
+        <th>T</th><th>PTS</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in rows %}
+    <tr class="tp-tr{% if loop.index <= 2 %} tp-tr-qualify{% endif %}{% if r.team == 'Deutschland' %} tp-tr-germany{% endif %}">
+      <td class="tp-td-team">{{ r.team }}</td>
+      <td>{{ r.p }}</td>
+      <td>{{ r.w }}</td>
+      <td>{{ r.d }}</td>
+      <td>{{ r.l }}</td>
+      <td>{{ r.gf }}:{{ r.ga }}</td>
+      <td class="tp-td-pts">{{ r.pts }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <!-- Group matches -->
+  <div class="tp-group-matches">
+  {% for gm in group_matches.get(letter, []) %}
+  {% set m = gm.match %}
+  {% set res = gm.result %}
+  <div class="tp-match-row">
+    <span class="tp-match-time">{{ m.kickoff_at.strftime('%d.%m %H:%M') if m.kickoff_at else '–' }}</span>
+    <span class="tp-match-teams">{{ m.home_team }} – {{ m.away_team }}</span>
+    <span class="tp-match-score {% if res and res.status == 'final' %}tp-score-final{% endif %}">
+      {% if res and res.status == 'final' %}{{ res.home_goals_actual }}:{{ res.away_goals_actual }}
+      {% else %}–:–{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+  </div>
+</div>
+{% endfor %}
+</div>
+
+<!-- ── KNOCKOUT ── -->
+<div class="card-title" style="margin-top:1.5rem; margin-bottom:0.75rem">K.O.-RUNDE</div>
+<div class="tp-knockout">
+{% for label, items in knockout.items() %}
+<div class="tp-ko-section">
+  <div class="tp-ko-title">
+    {% if label == '16EL' %}SECHZEHNTELFINALE
+    {% elif label == 'AF' %}ACHTELFINALE
+    {% elif label == 'VF' %}VIERTELFINALE
+    {% elif label == 'HF' %}HALBFINALE
+    {% elif label == 'P3' %}SPIEL UM PLATZ 3
+    {% elif label == 'F' %}FINALE
+    {% else %}{{ label }}{% endif %}
+  </div>
+  {% for item in items %}
+  {% set m = item.match %}
+  {% set res = item.result %}
+  <div class="tp-match-row tp-ko-row">
+    <span class="tp-match-time">{{ m.kickoff_at.strftime('%d.%m %H:%M') if m.kickoff_at else '–' }}</span>
+    <span class="tp-match-teams">{{ m.home_team }} – {{ m.away_team }}</span>
+    <span class="tp-match-score {% if res and res.status == 'final' %}tp-score-final{% endif %}">
+      {% if res and res.status == 'final' %}{{ res.home_goals_actual }}:{{ res.away_goals_actual }}
+      {% else %}–:–{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+</div>
+
+{% endblock %}
