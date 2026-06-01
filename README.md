@@ -84,12 +84,22 @@ corruption under concurrent requests.
 
 ## Installation (Docker)
 
-### 1. Clone the repository
+### 1. Get the files
+
+The Docker image is published automatically to GitHub Container Registry on
+every push to `master`. You only need two files on the server:
 
 ```bash
-git clone <your-repo-url> vibetipp
-cd vibetipp
+mkdir vibetipp && cd vibetipp
+curl -O https://raw.githubusercontent.com/jonasbienzeisler/VibeTipp/master/docker-compose.yml
+curl -O https://raw.githubusercontent.com/jonasbienzeisler/VibeTipp/master/.env.example
 ```
+
+`docker compose up` will pull `ghcr.io/jonasbienzeisler/vibetipp:latest`
+automatically — no source checkout required.
+
+The tournament schedule (`matches.csv`) is bundled in the image and seeded into
+the data volume on first start.
 
 ### 2. Generate a secret key
 
