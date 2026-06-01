@@ -1,8 +1,8 @@
 services:
   vibetipp:
-    image: ghcr.io/jonasbienzeisler/vibetipp:latest
-    # To build locally from source instead: comment out 'image' above and uncomment:
-    # build: .
+    build: .
+    # To use a pre-built image from ghcr.io instead: comment out 'build' above and uncomment:
+    # image: ghcr.io/jonasbienzeisler/vibetipp:latest
     container_name: vibetipp
     restart: unless-stopped
     ports:
