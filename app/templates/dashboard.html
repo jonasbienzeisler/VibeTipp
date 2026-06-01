@@ -46,6 +46,18 @@
     </div>
     {% endfor %}
     {% endif %}
+
+    <div class="rank-badge-img-wrap" style="margin-top:0.75rem">
+      <img src="{{ url_for('static', filename='steer_yes.png' if sav_confirmed else 'steering.png') }}"
+           alt="" class="rank-badge-img" id="sav-card-img">
+    </div>
+    <div class="status-line {% if sav_confirmed %}status-ok{% else %}status-warn{% endif %}" id="sav-status-label" style="justify-content:center">
+      {% if sav_confirmed %}✅ SCHULUNG ABGESCHLOSSEN{% else %}❌ SCHULUNG AUSSTEHEND{% endif %}
+    </div>
+    <button class="btn {% if sav_confirmed %}btn-secondary{% else %}btn-primary{% endif %} btn-full btn-sm"
+            onclick="openModal('modal-sav')" id="sav-open-btn" style="margin-top:0.5rem">
+      {% if sav_confirmed %}ERNEUT ANSEHEN{% else %}▶ SCHULUNG ÖFFNEN{% endif %}
+    </button>
   </div>
 
   <!-- Next Match -->
@@ -131,5 +143,135 @@
     </div>
   </div>
 
+</div>
+
+<!-- SAV Modal -->
+<div id="modal-sav" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-sav')">
+  <div class="sav-modal-box">
+    <button class="info-modal-close" onclick="closeModal('modal-sav')">✕</button>
+
+    <div class="sav-modal-header">
+      <div class="sav-modal-title">SAV zur risikoadjustierten Prädiktionspunktvergabe im VibeTipp WM 2026</div>
+      <div class="sav-modal-meta">
+        <span>Dokumententyp: SAV</span><span class="sep">::</span>
+        <span>QM-ID: VT-SAV-01</span><span class="sep">::</span>
+        <span>Version: v1.0</span><span class="sep">::</span>
+        <span class="sav-status-badge">STATUS: GÜLTIG</span>
+      </div>
+    </div>
+
+    <div class="sav-modal-body" id="sav-scroll-body" onscroll="savCheckScroll()">
+      <div class="sav-section">
+        <div class="sav-h1">1. Präambel</div>
+        <p>Diese Standardarbeitsverfahrensanweisung beschreibt das verbindliche Vorgehen zur Teilnahme am VibeTipp WM 2026 und zur Anwendung der risikoadjustierten Prädiktionspunktvergabe.</p>
+        <p>Ziel der SAV ist es, ein einheitliches, nachvollziehbares und möglichst streitarmes Verfahren für die Abgabe, Speicherung, Sperrung und Bewertung von Tipps sicherzustellen. Die SAV dient zugleich der Schulung aller Teilnehmerinnen und Teilnehmer.</p>
+        <p>Abweichungen von dieser SAV sind grundsätzlich nicht vorgesehen. Technische Störungen, Fehlbedienungen oder sonstige Sonderfälle müssen unverzüglich an die Spielleitung gemeldet werden.</p>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">2. Zweck</div>
+        <p>Diese SAV legt fest: wie Tipps abzugeben sind, wann Tipps gültig sind, wie Spieltage und einzelne Spiele gesperrt werden, wie Punkte vergeben werden, wie Hochrisikospiele zu wählen sind, wie Bonuspunkte und Multiplikatoren angewendet werden, wie der Highscore zu interpretieren ist, und welche Rollen im VibeTipp-Verfahren bestehen.</p>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">3. Geltungsbereich</div>
+        <p>Diese SAV gilt für alle Nutzerinnen und Nutzer der VibeTipp-WM-2026-Plattform. Sie gilt für alle Spiele der Fußball-Weltmeisterschaft 2026, die in der Plattform angelegt und für das Tippspiel freigegeben wurden. Die SAV gilt unabhängig davon, ob die Teilnahme über Desktop, Tablet oder Smartphone erfolgt.</p>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">4. Rollen und Verantwortlichkeiten</div>
+        <div class="sav-h2">4.1 Teilnehmerin / Teilnehmer</div>
+        <p>Teilnehmerinnen und Teilnehmer sind verantwortlich für das rechtzeitige Eintragen ihrer Tipps, das Speichern ihrer Tipps vor Spielbeginn, die Kontrolle ob Tipps korrekt gespeichert wurden, die Auswahl eines Hochrisikospiels sofern gewünscht, die Kenntnisnahme dieser SAV und die Einhaltung der beschriebenen Verfahrensregeln. Ein Tipp gilt nur dann als abgegeben, wenn er in der App gespeichert wurde.</p>
+        <div class="sav-h2">4.2 Spielleitung</div>
+        <p>Die Spielleitung ist verantwortlich für die organisatorische Durchführung des Tippspiels, die Klärung von Sonderfällen, die Kommunikation relevanter Änderungen, die Pflege der Spielregeln und die finale Entscheidung bei Unklarheiten.</p>
+        <div class="sav-h2">4.3 System / VibeTipp-Plattform</div>
+        <p>Das System ist verantwortlich für die technische Speicherung der Tipps, die Sperrung einzelner Spiele zum jeweiligen Anpfiff, die Berechnung der Punkte nach definierter Scoring-Logik, die Darstellung des Highscores und die Dokumentation des Schulungsstatus dieser SAV.</p>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">5. Abkürzungen und Definitionen</div>
+        <div class="sav-def"><span class="sav-term">SAV:</span> Standardarbeitsverfahrensanweisung. Eine verbindliche Beschreibung eines geregelten Vorgehens.</div>
+        <div class="sav-def"><span class="sav-term">Tipp:</span> Die von einer Teilnehmerin oder einem Teilnehmer gespeicherte Vorhersage des Endergebnisses eines Spiels.</div>
+        <div class="sav-def"><span class="sav-term">Tendenz:</span> Die grundsätzliche Spielrichtung: Heimsieg, Unentschieden oder Auswärtssieg.</div>
+        <div class="sav-def"><span class="sav-term">Exaktes Ergebnis:</span> Der Tipp stimmt vollständig mit dem tatsächlichen Endergebnis überein.</div>
+        <div class="sav-def"><span class="sav-term">Tordifferenz:</span> Die Differenz zwischen Heimtoren und Auswärtstoren. Beispiel: 2:1 und 1:0 haben beide eine Tordifferenz von +1.</div>
+        <div class="sav-def"><span class="sav-term">Gesamttore:</span> Die Summe aller im Spiel erzielten Tore. Beispiel: Bei 2:1 beträgt die Gesamtzahl der Tore 3.</div>
+        <div class="sav-def"><span class="sav-term">Raritätsfaktor:</span> Ein Multiplikator, der seltenere richtige Tendenzen stärker gewichtet. Formel: 2 − Anteil der gewählten Tendenz, max ×2,0.</div>
+        <div class="sav-def"><span class="sav-term">Deutschland-Spiel:</span> Ein Spiel mit Beteiligung der deutschen Nationalmannschaft. Punkte werden verdoppelt.</div>
+        <div class="sav-def"><span class="sav-term">Hochrisikospiel:</span> Ein pro Spieltag auswählbares Spiel. Richtige Tendenz → Punkte ×2. Falsche Tendenz → −10 Punkte.</div>
+        <div class="sav-def"><span class="sav-term">Highscore:</span> Die Rangliste aller Teilnehmerinnen und Teilnehmer auf Basis der kumulierten Gesamtpunkte.</div>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">6. Prozessübersicht</div>
+        <p>Der reguläre Ablauf eines Spieltags: (1) Spieltag öffnen. (2) Tipps eintragen. (3) Tipps speichern. (4) Optional Hochrisikospiel auswählen. (5) Vor Anpfiff prüfen ob alle Tipps gespeichert sind. (6) Nach Spielende werden Ergebnisse eingetragen. (7) Punkte werden berechnet. (8) Highscore wird aktualisiert. (9) Teilnehmerinnen und Teilnehmer können die Punkte einsehen.</p>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">7. Beschreibung der Arbeitsschritte</div>
+        <div class="sav-h2">Task 1: Tippabgabe</div>
+        <p>Die Teilnehmerin oder der Teilnehmer trägt die erwartete Anzahl an Heim- und Auswärtstoren ein und speichert den Tipp. Ein nur eingetragener, aber nicht gespeicherter Tipp ist nicht gültig.</p>
+        <div class="sav-h2">Task 2: Deadline und Sperrung</div>
+        <p>Jedes Spiel wird einzeln zum jeweiligen Anpfiff gesperrt. Nach der Sperrung kann kein Tipp mehr abgegeben oder verändert werden.</p>
+        <div class="sav-h2">Task 3: Basispunkte berechnen</div>
+        <p>Die Auswertungslogik bestimmt die höchste zutreffende Basiskategorie. Die Kategorien sind nicht additiv — es wird nur die höchste zutreffende vergeben:</p>
+        <div class="sav-pts-table">
+          <div class="sav-pts-row"><span class="sav-pts sav-pts-green">+4</span><span>Exaktes Ergebnis</span></div>
+          <div class="sav-pts-row"><span class="sav-pts sav-pts-green">+3</span><span>Richtige Tordifferenz</span></div>
+          <div class="sav-pts-row"><span class="sav-pts sav-pts-green">+2</span><span>Richtige Tendenz</span></div>
+          <div class="sav-pts-row"><span class="sav-pts">0</span><span>Falsche Tendenz</span></div>
+        </div>
+        <div class="sav-h2">Task 4: Zusatzpunkt für richtige Gesamttore</div>
+        <p>Bei exakt richtiger Gesamtzahl der Tore wird zusätzlich 1 Punkt vergeben — unabhängig davon, ob die Tendenz richtig war.</p>
+        <div class="sav-h2">Task 5: Raritätsfaktor</div>
+        <p>Formel: Raritätsfaktor = 2 − Anteil der gewählten Tendenz. Nur bei richtiger Tendenz. Maximum ×2,0.</p>
+        <div class="sav-h2">Task 6: Deutschland-Multiplikator</div>
+        <p>Bei Deutschland-Spielen werden alle Punkte des Spiels mit Faktor 2 multipliziert.</p>
+        <div class="sav-h2">Task 7: Hochrisikospiel auswählen</div>
+        <p>Genau ein Spiel pro Spieltag kann als Hochrisikospiel markiert werden. Voraussetzung: Tipp gespeichert, Spiel noch nicht gestartet.</p>
+        <div class="sav-h2">Task 8: Hochrisikospiel auswerten</div>
+        <p>Richtige Tendenz → Punkte ×2. Falsche Tendenz → −10 Punkte. Unentschieden ist eine normale Tendenz: Wer Unentschieden tippt und das Spiel endet unentschieden, ist die Tendenz richtig.</p>
+        <div class="sav-h2">Task 9: Bonuspunkt</div>
+        <p>Spielerinnen und Spieler mit richtiger Tendenz und größter Tordifferenz im Tipp erhalten pro Spiel einen Bonuspunkt.</p>
+        <div class="sav-h2">Task 10: Highscore</div>
+        <p>Das System summiert alle Punkte und aktualisiert die Rangliste nach jeder Auswertung.</p>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">8. Verfahrensregeln und Hinweise</div>
+        <p><strong>8.1</strong> Tipps müssen vor Spielbeginn gespeichert werden. Nicht gespeicherte Tipps gelten als nicht abgegeben.</p>
+        <p><strong>8.2</strong> Jedes Spiel sperrt einzeln. Spätere Spiele desselben Spieltags können weiterhin getippt werden.</p>
+        <p><strong>8.3</strong> Ein gesetztes Hochrisikospiel ist nach Spielbeginn verbindlich. Eine Änderung ist nicht mehr möglich.</p>
+        <p><strong>8.4</strong> Bei falscher Tendenz im Hochrisikospiel werden 10 Punkte abgezogen — unabhängig davon, wie knapp der Tipp war.</p>
+        <p><strong>8.5</strong> Die in der App hinterlegte Auswertungslogik ist maßgeblich. Bei erkennbaren technischen Fehlern informiert die Teilnehmerin oder der Teilnehmer die Spielleitung.</p>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">9. Beispiele zur Punktevergabe</div>
+        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 2:1</strong> → Exaktes Ergebnis +4, Richtige Gesamttore +1 = <strong>5 Punkte</strong></div>
+        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 1:0</strong> → Richtige Tordifferenz +3, Gesamttore 1≠3 = <strong>3 Punkte</strong></div>
+        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 3:0</strong> → Richtige Tendenz +2, Richtige Gesamttore +1 = <strong>3 Punkte</strong></div>
+        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 1:2</strong> → Falsche Tendenz 0, Richtige Gesamttore +1 = <strong>1 Punkt</strong></div>
+        <div class="sav-example"><strong>Ergebnis 1:1, Tipp 2:2</strong> → Richtige Tendenz +2, Gesamttore 4≠2 = <strong>2 Punkte</strong></div>
+        <div class="sav-example"><strong>Ergebnis 1:1, Tipp 2:1, Hochrisikospiel</strong> → Falsche Tendenz, Hochrisiko = <strong>−10 Punkte</strong></div>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">10. Schulung und Kenntnisnahme</div>
+        <p>Alle Teilnehmerinnen und Teilnehmer müssen diese SAV vor oder während der Nutzung der Plattform lesen. Die Schulung gilt als abgeschlossen, wenn die SAV bis zum Ende gelesen und die Bestätigungscheckbox aktiv gesetzt wurde.</p>
+        <p>Nach erfolgreicher Schulung wird der Schulungsstatus auf der Startseite grün angezeigt. Solange die Schulung nicht bestätigt wurde, wird der Status rot angezeigt.</p>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">11. Abweichungen und Sonderfälle</div>
+        <p>Abweichungen sind nur in begründeten Ausnahmefällen möglich (technische Störungen, fehlerhafte Ergebnisdaten, versehentliche Mehrfachauswertung). Sonderfälle müssen der Spielleitung gemeldet werden.</p>
+      </div>
+      <div class="sav-section">
+        <div class="sav-h1">12. Dokumentenhistorie</div>
+        <p>Version v1.0: Initiale Fassung der SAV zur risikoadjustierten Prädiktionspunktvergabe im VibeTipp WM 2026.</p>
+      </div>
+
+      <div class="sav-confirm-area" id="sav-confirm-area">
+        <div class="sav-scroll-hint" id="sav-scroll-hint">↓ Bitte bis zum Ende scrollen um die Schulung zu bestätigen</div>
+        <label class="sav-checkbox-label" id="sav-checkbox-label">
+          <input type="checkbox" id="sav-checkbox" disabled onchange="savCheckboxChanged()">
+          <span>Ich bestätige, dass ich diese SAV gelesen und verstanden habe und die risikoadjustierte Prädiktionspunktvergabe im VibeTipp WM 2026 gemäß dieser Verfahrensanweisung anwenden werde.</span>
+        </label>
+        <button class="btn btn-primary" id="sav-confirm-btn" disabled onclick="savConfirm()">
+          ✓ SCHULUNG ABSCHLIESSEN
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

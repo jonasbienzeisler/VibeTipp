@@ -2,7 +2,7 @@ from pathlib import Path
 from app.repositories.base import read_lines, atomic_write_text
 from filelock import FileLock
 
-HEADERS = "username;password_hash;role;display_name;active;paid"
+HEADERS = "username;password_hash;role;display_name;active;paid;sav_doc_id;sav_doc_version;sav_confirmed_at"
 
 
 class UserRepository:
@@ -21,6 +21,9 @@ class UserRepository:
             "display_name": parts[3].strip(),
             "active": parts[4].strip() == "1",
             "paid": parts[5].strip() == "1" if len(parts) > 5 else False,
+            "sav_doc_id": parts[6].strip() if len(parts) > 6 else "",
+            "sav_doc_version": parts[7].strip() if len(parts) > 7 else "",
+            "sav_confirmed_at": parts[8].strip() if len(parts) > 8 else "",
         }
 
     def all(self) -> list[dict]:
@@ -53,6 +56,9 @@ class UserRepository:
                 user.get("display_name", user["username"]),
                 "1" if user.get("active", True) else "0",
                 "1" if user.get("paid", False) else "0",
+                user.get("sav_doc_id", ""),
+                user.get("sav_doc_version", ""),
+                user.get("sav_confirmed_at", ""),
             ])
 
             # Replace existing or append

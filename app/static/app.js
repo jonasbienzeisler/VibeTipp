@@ -257,6 +257,41 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+// ─── SAV Training Modal ───────────────────────────────────────
+function savCheckScroll() {
+  const body = document.getElementById('sav-scroll-body');
+  const hint = document.getElementById('sav-scroll-hint');
+  const cb = document.getElementById('sav-checkbox');
+  if (!body || !cb) return;
+  if (body.scrollTop + body.clientHeight >= body.scrollHeight - 50) {
+    cb.disabled = false;
+    if (hint) hint.style.display = 'none';
+  }
+}
+
+function savCheckboxChanged() {
+  const cb = document.getElementById('sav-checkbox');
+  const btn = document.getElementById('sav-confirm-btn');
+  if (btn) btn.disabled = !cb.checked;
+}
+
+function savConfirm() {
+  fetch('/training/confirm', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) return;
+      closeModal('modal-sav');
+      const label = document.getElementById('sav-status-label');
+      const btn = document.getElementById('sav-open-btn');
+      const img = document.getElementById('sav-card-img');
+      const card = document.querySelector('.sav-card');
+      if (label) { label.textContent = '✅ GESCHULT'; label.className = 'sav-status sav-status-ok'; }
+      if (btn) { btn.textContent = 'ERNEUT ANSEHEN'; btn.className = 'btn btn-secondary btn-sm sav-open-btn'; }
+      if (img) img.src = img.src.replace('steering.png', 'steer_yes.png');
+      if (card) { card.classList.remove('sav-card-pending'); card.classList.add('sav-card-ok'); }
+    });
+}
+
 // ─── Admin: adjust points for a user ────────────────────────
 function adminAdjustPts(username, matchId, newVal) {
   const delta = parseFloat(newVal);

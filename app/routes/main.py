@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
-from flask import Blueprint, render_template, redirect, url_for, session, flash, request, current_app
+from flask import Blueprint, render_template, redirect, url_for, session, flash, request, current_app, jsonify
 from app.scoring.engine import calculate_score, get_tendency, Tendency
+from app import config as _cfg
 
 bp = Blueprint("main", __name__)
 
@@ -181,6 +182,13 @@ def dashboard():
                     tip = tip_repo.get_user_tip(user, m["match_id"])
                     soon_matches.append({"match": m, "has_tip": tip is not None})
 
+    user_data = current_app.user_repo.find_by_username(user) or {}
+    sav_confirmed = (
+        user_data.get("sav_doc_id") == _cfg.SAV_DOC_ID and
+        user_data.get("sav_doc_version") == _cfg.SAV_DOC_VERSION and
+        bool(user_data.get("sav_confirmed_at"))
+    )
+
     return render_template("dashboard.html",
         missing_count=missing_count,
         next_match=next_match,
@@ -192,7 +200,23 @@ def dashboard():
         soon_matches=soon_matches,
         matchdays=matchdays,
         now=now,
+        sav_confirmed=sav_confirmed,
     )
+
+
+@bp.post("/training/confirm")
+@login_required
+def confirm_training():
+    username = session["username"]
+    user_repo = current_app.user_repo
+    user_data = user_repo.find_by_username(username)
+    if not user_data:
+        return jsonify({"error": "not found"}), 404
+    user_data["sav_doc_id"] = _cfg.SAV_DOC_ID
+    user_data["sav_doc_version"] = _cfg.SAV_DOC_VERSION
+    user_data["sav_confirmed_at"] = datetime.now(timezone.utc).isoformat()
+    user_repo.save(user_data)
+    return jsonify({"ok": True})
 
 
 @bp.route("/matchday/<int:matchday>")

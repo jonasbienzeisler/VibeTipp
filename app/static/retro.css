@@ -1108,6 +1108,131 @@ body {
   box-shadow: var(--shadow), 0 0 20px rgba(0,229,255,0.6);
 }
 
+/* ── SAV CARD ── */
+.sav-card {
+  border-color: var(--border-dim);
+}
+.sav-card-ok {
+  border-color: var(--green);
+  box-shadow: var(--shadow), 0 0 10px rgba(57,211,83,0.25);
+}
+.sav-card-pending {
+  border-color: var(--red);
+  box-shadow: var(--shadow), 0 0 10px rgba(255,68,68,0.25);
+}
+.sav-card-inner {
+  display: flex; align-items: center; gap: 1rem;
+}
+.sav-card-img {
+  width: 56px; height: 56px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+.sav-card-content {
+  display: flex; flex-direction: column; gap: 0.4rem; flex: 1;
+}
+.sav-card-name {
+  color: var(--gold); font-size: 0.6rem; letter-spacing: 1px;
+}
+.sav-card-sub {
+  color: rgba(255,255,255,0.45); font-size: 0.45rem; letter-spacing: 0.5px; line-height: 1.6;
+}
+.sav-status {
+  font-size: 0.55rem; letter-spacing: 1px;
+}
+.sav-status-ok  { color: var(--green); }
+.sav-status-pending { color: var(--red); }
+
+/* ── SAV MODAL ── */
+.sav-modal-box {
+  background: var(--panel2);
+  border: 3px solid var(--gold);
+  box-shadow: var(--shadow), var(--pixel-glow);
+  padding: 1.5rem;
+  max-width: 700px; width: 95vw;
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.sav-modal-header {
+  border-bottom: 2px solid var(--border-dim);
+  padding-bottom: 0.75rem; margin-bottom: 0.75rem;
+  flex-shrink: 0;
+}
+.sav-modal-title {
+  color: var(--gold); font-size: 0.6rem; letter-spacing: 1px; line-height: 1.8;
+}
+.sav-modal-meta {
+  color: rgba(255,255,255,0.4); font-size: 0.45rem;
+  letter-spacing: 0.5px; margin-top: 0.4rem; line-height: 1.8;
+}
+.sav-modal-body {
+  flex: 1; overflow-y: auto; padding-right: 0.5rem;
+}
+.sav-section {
+  margin-bottom: 1.25rem;
+}
+.sav-h1 {
+  color: var(--gold); font-size: 0.55rem; letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-dim); padding-bottom: 0.25rem;
+}
+.sav-h2 {
+  color: var(--cyan); font-size: 0.5rem; letter-spacing: 0.5px;
+  margin: 0.6rem 0 0.3rem;
+}
+.sav-def {
+  color: rgba(255,255,255,0.75); font-size: 0.45rem;
+  line-height: 1.9; margin-bottom: 0.25rem;
+}
+.sav-term {
+  color: var(--white); font-size: 0.45rem;
+}
+.sav-pts-table {
+  margin: 0.5rem 0;
+}
+.sav-pts-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  font-size: 0.45rem; color: rgba(255,255,255,0.75);
+  padding: 0.2rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.sav-pts {
+  display: inline-block; min-width: 2rem; text-align: center;
+  font-size: 0.5rem; color: rgba(255,255,255,0.5);
+}
+.sav-pts-green { color: var(--green); }
+.sav-example {
+  color: rgba(255,255,255,0.65); font-size: 0.45rem;
+  line-height: 1.9; margin-bottom: 0.2rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--border-dim);
+}
+.sav-confirm-area {
+  border-top: 2px solid var(--border-dim);
+  padding-top: 0.75rem; margin-top: 0.75rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  flex-shrink: 0;
+}
+.sav-scroll-hint {
+  color: var(--amber); font-size: 0.5rem; letter-spacing: 0.5px; text-align: center;
+  animation: blink 1.2s step-start infinite;
+}
+.sav-checkbox-label {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  color: rgba(255,255,255,0.75); font-size: 0.45rem; line-height: 1.8;
+  cursor: pointer;
+}
+.sav-checkbox-label input[type="checkbox"] {
+  margin-top: 2px; flex-shrink: 0; accent-color: var(--green);
+  width: 14px; height: 14px;
+}
+.sav-status-badge {
+  display: inline-block; font-size: 0.5rem; letter-spacing: 1px;
+  padding: 0.2rem 0.5rem;
+  border: 2px solid currentColor;
+}
+
 /* ── LOADING OVERLAY ── */
 .loading-overlay img.loading-person-gif {
   image-rendering: pixelated; width: 64px; height: 64px;
