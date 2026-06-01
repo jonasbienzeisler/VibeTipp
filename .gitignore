@@ -26,6 +26,7 @@ data/rarity_snapshots.csv
 data/audit.log
 data/player_results/
 data/*.lock
+data/matches_correct.csv
 
 # OS
 .DS_Store

@@ -13,15 +13,15 @@ the tournament progresses.
 
 1. [Architecture Overview](#architecture-overview)
 2. [Backend: Text-File Storage](#backend-text-file-storage)
-3. [Security Features](#security-features)
-4. [Requirements](#requirements)
-5. [Installation (Docker)](#installation-docker)
-6. [Environment Variables](#environment-variables)
-7. [Ports & Network](#ports--network)
-8. [HTTPS](#https)
-9. [First-Run Setup Checklist](#first-run-setup-checklist)
-10. [Updating](#updating)
-11. [Data Backup](#data-backup)
+3. [Requirements](#requirements)
+4. [Installation (Docker)](#installation-docker)
+5. [Environment Variables](#environment-variables)
+6. [Ports & Network](#ports--network)
+7. [HTTPS](#https)
+8. [First-Run Setup Checklist](#first-run-setup-checklist)
+9. [Updating](#updating)
+10. [Data Backup](#data-backup)
+11. [Security Features](#security-features)
 
 ---
 
@@ -57,7 +57,6 @@ They are semicolon-delimited CSV files (UTF-8) plus one plain-text log.
 |---|---|
 | `users.txt` | User accounts — username, argon2id hash, role (`user`/`admin`), display name, active flag, paid flag |
 | `matches.csv` | Tournament schedule — match ID, matchday, kickoff (ISO 8601 + TZ), home team, away team, Germany-game flag |
-| `matches_correct.csv` | Admin reference copy of the original bracket (empty by default; kept for comparison) |
 | `results.csv` | Match results entered by admin — match ID, home goals, away goals, status (`scheduled`/`final`) |
 | `tips.csv` | Player predictions — tip ID, timestamp, username, match ID, home/away goals tipped, is-risk-pick flag |
 | `rarity_snapshots.csv` | Frozen tip-distribution per match at kickoff — used for the rarity multiplier |
@@ -67,26 +66,6 @@ They are semicolon-delimited CSV files (UTF-8) plus one plain-text log.
 
 **File locking:** All writes use `filelock` + atomic `os.replace()` to prevent
 corruption under concurrent requests.
-
----
-
-## Security Features
-
-| Feature | Detail |
-|---|---|
-| **Password hashing** | Argon2id (`m=65536, t=2, p=2`) via `argon2-cffi` |
-| **Timing-attack resistance** | Dummy `verify_password()` always runs, even for unknown usernames |
-| **Rate limiting** | Per-source-IP in-memory counter; default 10 failed attempts → 15-min lockout (configurable) |
-| **Session cookies** | `SameSite=Lax` (CSRF mitigation); `HttpOnly` implicit via Flask |
-| **Role gates** | `admin` role required for all `/admin/*` routes |
-| **Non-root container** | Docker image runs as unprivileged user `vibetipp` |
-| **Upload size cap** | Result-file uploads limited to `MAX_UPLOAD_SIZE_MB` (default 1 MB) |
-| **No SQL / no eval** | No injection surface; all storage is plain file I/O |
-| **Secret key** | Flask session signed with `SECRET_KEY` env var — **must be set before production** |
-
-> **Rate-limit note:** The IP lockout counter is in-memory and resets on container
-> restart. This is intentional for low-traffic private deployments. For
-> production hardening, add fail2ban at the host level.
 
 ---
 
@@ -112,20 +91,30 @@ git clone <your-repo-url> vibetipp
 cd vibetipp
 ```
 
-### 2. Configure environment
+### 2. Generate a secret key
+
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Copy the output — you will need it in the next step.
+
+### 3. Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set at minimum:
+Open `.env` and set `SECRET_KEY` to the value you just generated:
 
 ```env
-# Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
-SECRET_KEY=your-random-secret-here
+SECRET_KEY=paste-your-generated-key-here
 ```
 
-### 3. Build and start
+This key signs all session cookies. **It must be set before going live** — the
+default value in `.env.example` is not safe for production.
+
+### 4. Build and start
 
 ```bash
 docker compose up -d --build
@@ -133,7 +122,9 @@ docker compose up -d --build
 
 The app is now available at `http://<server-ip>:8081`.
 
-### 4. Create the first admin user
+> **Note:** The app serves plain HTTP. See [HTTPS](#https) if you need TLS.
+
+### 5. Create the first admin user
 
 ```bash
 docker exec -it vibetipp python -c "
@@ -156,7 +147,7 @@ with app.app_context():
 Log in at `http://<server-ip>:8081/login` with `admin` / `CHANGE-THIS-PASSWORD`
 and change the password immediately via the admin panel.
 
-### 5. Create player accounts
+### 6. Create player accounts
 
 Use **Admin → Nutzer anlegen** in the web UI, or repeat the command above with
 `role: 'user'`.
@@ -280,3 +271,23 @@ docker run --rm \
 > The `player_results/` directory is fully derived and can be deleted at any
 > time. It is rebuilt automatically on the next admin result import or
 > "Punkte berechnen" action.
+
+---
+
+## Security Features
+
+| Feature | Detail |
+|---|---|
+| **Password hashing** | Argon2id (`m=65536, t=2, p=2`) via `argon2-cffi` |
+| **Timing-attack resistance** | Dummy `verify_password()` always runs, even for unknown usernames |
+| **Rate limiting** | Per-source-IP in-memory counter; default 10 failed attempts → 15-min lockout (configurable) |
+| **Session cookies** | `SameSite=Lax` (CSRF mitigation); `HttpOnly` implicit via Flask |
+| **Role gates** | `admin` role required for all `/admin/*` routes |
+| **Non-root container** | Docker image runs as unprivileged user `vibetipp` |
+| **Upload size cap** | Result-file uploads limited to `MAX_UPLOAD_SIZE_MB` (default 1 MB) |
+| **No SQL / no eval** | No injection surface; all storage is plain file I/O |
+| **Secret key** | Flask session signed with `SECRET_KEY` env var — must be set before production |
+
+> **Rate-limit note:** The IP lockout counter is in-memory and resets on container
+> restart. This is intentional for low-traffic private deployments. For
+> production hardening, add fail2ban at the host level.
