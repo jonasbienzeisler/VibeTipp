@@ -3,9 +3,12 @@ set -e
 
 DATA_DIR="${DATA_DIR:-/data}"
 
-# Seed matches.csv into the volume on first run
-if [ ! -f "$DATA_DIR/matches.csv" ]; then
-    cp /app/data/matches.csv "$DATA_DIR/matches.csv"
+# Seed matches.csv into the volume if missing or empty (header-only)
+MATCHES_TARGET="$DATA_DIR/matches.csv"
+MATCHES_SRC="/app/data/matches.csv"
+LINE_COUNT=$(wc -l < "$MATCHES_TARGET" 2>/dev/null || echo 0)
+if [ "$LINE_COUNT" -le 1 ]; then
+    cp "$MATCHES_SRC" "$MATCHES_TARGET"
 fi
 
 exec python main.py
