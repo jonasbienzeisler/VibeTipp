@@ -1,8 +1,6 @@
 services:
   vibetipp:
-    build: .
-    # To use a pre-built image from ghcr.io instead: comment out 'build' above and uncomment:
-    # image: ghcr.io/jonasbienzeisler/vibetipp:latest
+    image: ghcr.io/jonasbienzeisler/vibetipp:latest
     container_name: vibetipp
     restart: unless-stopped
     ports:
