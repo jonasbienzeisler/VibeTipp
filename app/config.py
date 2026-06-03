@@ -6,7 +6,7 @@ from pathlib import Path
 # Applied as a multiplier to base points (tendency + exactness + goal-rich)
 RARITY_MAX_POINTS: float = 2.0
 
-DATA_DIR = Path(os.environ.get("DATA_DIR", "data"))
+DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-production-please")
 PORT = int(os.environ.get("PORT", "8081"))
 SESSION_LIFETIME_HOURS = int(os.environ.get("SESSION_LIFETIME_HOURS", "24"))
