@@ -610,6 +610,8 @@ def profile():
             flash("Anzeigename darf nicht leer sein.", "error")
         elif len(display_name) > 50:
             flash("Anzeigename zu lang (max. 50 Zeichen).", "error")
+        elif ";" in display_name:
+            flash("Anzeigename darf kein Semikolon enthalten.", "error")
         else:
             user_repo.save({**user, "display_name": display_name})
             session["display_name"] = display_name

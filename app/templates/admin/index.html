@@ -92,6 +92,14 @@
           <input type="text" name="note" placeholder="Notiz" class="admin-adj-input" style="width:70px;">
           <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.5rem;padding:0.1rem 0.4rem;">[ADJ]</button>
         </form>
+        <button type="button" class="btn btn-sm btn-secondary" style="font-size:0.5rem;padding:0.1rem 0.4rem;"
+                onclick="openPasswordModal('{{ user.username }}')">[PW]</button>
+        {% if user.username != session['username'] %}
+        <form method="post" action="{{ url_for('admin.delete_user', username=user.username) }}" style="display:inline"
+              onsubmit="return confirm('Nutzer {{ user.username }} wirklich löschen?')">
+          <button type="submit" class="btn btn-sm btn-danger" style="font-size:0.5rem;padding:0.1rem 0.4rem;">[DEL]</button>
+        </form>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -100,6 +108,24 @@
     </div>
   </div>
 
+</div>
+
+<!-- Bulk User Creation -->
+<div class="card" style="margin-top:1.5rem">
+  <div class="card-title">NUTZER MASSENANLAGE</div>
+  <p class="card-desc" style="margin-bottom:0.75rem">
+    Eine Zeile pro Nutzer: <code style="color:var(--gold)">benutzername, passwort</code> oder
+    <code style="color:var(--gold)">benutzername, passwort, Anzeigename</code><br>
+    Leerzeilen und Zeilen mit # werden übersprungen.
+  </p>
+  <form method="post" action="{{ url_for('admin.bulk_create_users') }}">
+    <textarea name="bulk_users" class="form-input" rows="6"
+              style="width:100%;font-family:monospace;font-size:0.55rem;resize:vertical;white-space:pre"
+              placeholder="max_mueller, Sommer2026!&#10;anna_schmidt, Sommer2026!, Anna Schmidt&#10;ben_fischer, Sommer2026!"></textarea>
+    <div style="margin-top:0.5rem">
+      <button type="submit" class="btn btn-primary btn-sm">&gt; ALLE ANLEGEN</button>
+    </div>
+  </form>
 </div>
 
 {% if team_resolution_preview %}
@@ -139,4 +165,54 @@ M001;2;1;final
 M002;0;0;final
 M003;;; scheduled</pre>
 </div>
+
+<!-- Password Change Modal -->
+<div id="modal-pw-change" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-pw-change')">
+  <div class="info-modal-box" style="max-width:420px">
+    <div class="info-modal-inner">
+      <button class="info-modal-close" onclick="closeModal('modal-pw-change')">✕</button>
+      <div class="info-modal-title">🔑 PASSWORT ÄNDERN</div>
+      <div class="info-modal-body">
+        <div class="info-note" style="margin-bottom:1rem">Nutzer: <strong id="pw-modal-username" style="color:var(--gold)"></strong></div>
+        <form id="pw-modal-form" method="post" onsubmit="return validatePasswordModal()">
+          <div class="form-group" style="margin-bottom:0.75rem">
+            <label class="form-label" style="font-size:0.5rem">NEUES PASSWORT</label>
+            <input type="password" id="pw-new" name="password" class="form-input" minlength="8" required autocomplete="new-password" placeholder="min. 8 Zeichen">
+          </div>
+          <div class="form-group" style="margin-bottom:1rem">
+            <label class="form-label" style="font-size:0.5rem">PASSWORT BESTÄTIGEN</label>
+            <input type="password" id="pw-confirm" class="form-input" minlength="8" required autocomplete="new-password" placeholder="Wiederholen">
+          </div>
+          <div style="display:flex;gap:0.5rem;justify-content:flex-end">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('modal-pw-change')">ABBRECHEN</button>
+            <button type="submit" class="btn btn-sm btn-primary">&gt; SPEICHERN</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openPasswordModal(username) {
+  document.getElementById('pw-modal-username').textContent = username;
+  document.getElementById('pw-modal-form').action = '/admin/users/' + encodeURIComponent(username) + '/password';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  openModal('modal-pw-change');
+}
+function validatePasswordModal() {
+  const pw = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+  if (pw.length < 8) {
+    alert('Passwort muss mindestens 8 Zeichen haben.');
+    return false;
+  }
+  if (pw !== confirm) {
+    alert('Passwörter stimmen nicht überein.');
+    return false;
+  }
+  return true;
+}
+</script>
 {% endblock %}

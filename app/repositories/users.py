@@ -81,3 +81,22 @@ class UserRepository:
                 out_lines.append(new_line)
 
             atomic_write_text(self._path, "\n".join(out_lines) + "\n")
+
+    def delete(self, username: str) -> bool:
+        """Remove a user by username. Returns True if found and deleted."""
+        with self._lock:
+            lines = read_lines(self._path)
+            out_lines = []
+            found = False
+            for line in lines:
+                if line.startswith("username;") or line.startswith("#"):
+                    out_lines.append(line)
+                    continue
+                u = self._parse_line(line)
+                if u and u["username"].lower() == username.lower():
+                    found = True
+                else:
+                    out_lines.append(line)
+            if found:
+                atomic_write_text(self._path, "\n".join(out_lines) + "\n")
+            return found

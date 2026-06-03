@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, session, redirect, url_for, current_app, render_template_string
+from markupsafe import escape
 from app.scoring.engine import calculate_potential_rarity, get_tendency, Tendency, calculate_score
 from app import config as app_config
 from datetime import datetime, timezone
@@ -236,8 +237,8 @@ def user_tips_panel(username: str):
         sections.append({"matchday": md, "games": items})
 
     html = current_app.jinja_env.from_string(_USER_TIPS_PANEL_TEMPLATE).render(
-        display_name=display_name,
-        username=username,
+        display_name=escape(display_name),
+        username=escape(username),
         sections=sections,
     )
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
@@ -487,10 +488,11 @@ def matchday_overview(matchday: int):
         e["rank"] = i
         e["rank_img"] = _rank_img(i, n)
 
+    safe_ranking = [{**e, "display_name": escape(e["display_name"])} for e in ranking]
     html = current_app.jinja_env.from_string(_MD_OVERVIEW_TEMPLATE).render(
         matchday=matchday,
         locked_matches=locked_matches,
-        ranking=ranking,
+        ranking=safe_ranking,
         results=results,
         tips=tips,
         match_pts=match_pts,
@@ -551,8 +553,8 @@ def user_matchday_detail(username: str, matchday: int):
         })
 
     html = current_app.jinja_env.from_string(_USER_MATCHDAY_DETAIL_TEMPLATE).render(
-        display_name=display_name,
-        username=username,
+        display_name=escape(display_name),
+        username=escape(username),
         matchday=matchday,
         items=items,
         total_pts=total_pts,

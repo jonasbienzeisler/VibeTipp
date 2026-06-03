@@ -288,6 +288,112 @@ def adjust_user_points(username: str):
     return redirect(url_for("admin.index"))
 
 
+@bp.post("/users/bulk")
+@admin_required
+def bulk_create_users():
+    import re
+    from app.auth.hashing import hash_password
+
+    raw = request.form.get("bulk_users", "")
+    user_repo = current_app.user_repo
+
+    created = []
+    errors = []
+
+    for i, line in enumerate(raw.splitlines(), start=1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        parts = [p.strip() for p in line.split(",", 2)]
+        if len(parts) < 2:
+            errors.append(f"Zeile {i}: Format muss 'username, passwort' sein")
+            continue
+
+        username, password = parts[0], parts[1]
+        display_name = parts[2] if len(parts) > 2 else username
+
+        if not re.fullmatch(r"[A-Za-z0-9_\-]{3,32}", username):
+            errors.append(f"Zeile {i} ({username!r}): Ungültiger Benutzername")
+            continue
+        if len(password) < 8:
+            errors.append(f"Zeile {i} ({username}): Passwort zu kurz (min. 8 Zeichen)")
+            continue
+        if ";" in display_name:
+            errors.append(f"Zeile {i} ({username}): Anzeigename darf kein Semikolon enthalten")
+            continue
+        if len(display_name) > 50:
+            errors.append(f"Zeile {i} ({username}): Anzeigename zu lang (max. 50 Zeichen)")
+            continue
+        if user_repo.find_by_username(username) is not None:
+            errors.append(f"Zeile {i}: '{username}' existiert bereits")
+            continue
+
+        user_repo.save({
+            "username": username,
+            "password_hash": hash_password(password),
+            "role": "user",
+            "display_name": display_name,
+            "active": True,
+            "paid": False,
+        })
+        created.append(username)
+
+    if created:
+        current_app.audit.admin_action(
+            session["username"],
+            f"bulk_users_created count={len(created)} users={','.join(created)}",
+        )
+        flash(f"{len(created)} Nutzer angelegt: {', '.join(created)}", "success")
+    for e in errors:
+        flash(e, "error")
+    if not created and not errors:
+        flash("Keine Nutzer eingegeben.", "info")
+
+    return redirect(url_for("admin.index"))
+
+
+@bp.post("/users/<username>/delete")
+@admin_required
+def delete_user(username: str):
+    if username == session["username"]:
+        flash("Du kannst deinen eigenen Account nicht löschen.", "error")
+        return redirect(url_for("admin.index"))
+    user_repo = current_app.user_repo
+    deleted = user_repo.delete(username)
+    if not deleted:
+        flash(f"Nutzer '{username}' nicht gefunden.", "error")
+    else:
+        current_app.audit.admin_action(
+            session["username"],
+            f"user_deleted target={username}",
+        )
+        flash(f"Nutzer '{username}' gelöscht.", "success")
+    return redirect(url_for("admin.index"))
+
+
+@bp.post("/users/<username>/password")
+@admin_required
+def change_user_password(username: str):
+    from app.auth.hashing import hash_password
+    user_repo = current_app.user_repo
+    user = user_repo.find_by_username(username)
+    if not user:
+        flash(f"Nutzer '{username}' nicht gefunden.", "error")
+        return redirect(url_for("admin.index"))
+    password = request.form.get("password", "")
+    if len(password) < 8:
+        flash("Passwort muss mindestens 8 Zeichen haben.", "error")
+        return redirect(url_for("admin.index"))
+    user_repo.save({**user, "password_hash": hash_password(password)})
+    current_app.audit.admin_action(
+        session["username"],
+        f"password_changed target={username}",
+    )
+    flash(f"Passwort für '{username}' geändert.", "success")
+    return redirect(url_for("admin.index"))
+
+
 @bp.route("/users/new", methods=["GET", "POST"])
 @admin_required
 def create_user():
@@ -318,6 +424,8 @@ def create_user():
 
     if display_name and len(display_name) > 50:
         errors.append("Anzeigename zu lang (max. 50 Zeichen).")
+    if display_name and ";" in display_name:
+        errors.append("Anzeigename darf kein Semikolon enthalten.")
 
     if not errors:
         user_repo = current_app.user_repo
