@@ -64,7 +64,7 @@
         <button class="info-btn" onclick="openModal('modal-germany')" title="Was ist der ×2 Bonus?">ℹ</button>
       </span>
       {% endif %}
-      <span class="badge badge-status badge-{{ item.status }}">
+      <span class="badge badge-status badge-status-{{ item.status }}">
         {% if item.status == 'evaluated' %}✓ AUSGEWERTET
         {% elif item.status == 'locked' %}🔒 GESPERRT
         {% elif item.status == 'tipped' %}● GETIPPT
@@ -97,7 +97,7 @@
     {% if not item.locked %}
     <div class="tip-row">
       <!-- Inputs associated with bulk-tip-form via form attribute -->
-      <div class="tip-inputs">
+      <div class="tip-inputs" data-match-id="{{ m.match_id }}">
         <input type="number" name="home_goals_{{ m.match_id }}" form="bulk-tip-form"
                min="0" max="30" step="1"
                class="tip-input" placeholder="0"

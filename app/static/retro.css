@@ -363,12 +363,13 @@ body {
 .risk-toggle-form { display: flex; align-items: center; }
 .tip-form { display: inline-flex; align-items: center; }
 .tip-inputs { display: flex; align-items: center; gap: 0.4rem; }
+.tip-inputs-saved .tip-input { border-color: var(--green); box-shadow: 0 0 8px rgba(57,211,83,0.4); }
 .tip-input {
   width: 52px; background: rgba(0,0,0,0.6);
   border: 2px solid rgba(255,215,0,0.4);
   color: var(--gold); font-family: var(--font); font-size: 1rem;
   padding: 0.3rem 0.3rem; text-align: center;
-  outline: none;
+  outline: none; transition: border-color 0.8s, box-shadow 0.8s;
 }
 .tip-input:focus {
   border-color: var(--gold);

@@ -34,13 +34,18 @@ def save_tip(match_id: str):
     tip_repo = current_app.tip_repo
     audit = current_app.audit
     user = session["username"]
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     match = match_repo.find(match_id)
     if not match:
+        if is_ajax:
+            return jsonify({"ok": False, "error": "Spiel nicht gefunden"}), 404
         flash("Spiel nicht gefunden.", "error")
         return redirect(url_for("main.dashboard"))
 
     if match_repo.is_matchday_locked(match["matchday"]):
+        if is_ajax:
+            return jsonify({"ok": False, "error": "Tippfrist abgelaufen"}), 403
         flash("Tippfrist abgelaufen – dieser Spieltag kann nicht mehr getippt werden.", "error")
         return redirect(url_for("main.matchday", matchday=match["matchday"]))
 
@@ -51,11 +56,15 @@ def save_tip(match_id: str):
 
     home, err = _validate_goals(home_raw)
     if err:
+        if is_ajax:
+            return jsonify({"ok": False, "error": f"Heimtore: {err}"}), 400
         flash(f"Heimtore: {err}", "error")
         return redirect(url_for("main.matchday", matchday=match["matchday"]))
 
     away, err = _validate_goals(away_raw)
     if err:
+        if is_ajax:
+            return jsonify({"ok": False, "error": f"Auswärtstore: {err}"}), 400
         flash(f"Auswärtstore: {err}", "error")
         return redirect(url_for("main.matchday", matchday=match["matchday"]))
 
@@ -73,6 +82,9 @@ def save_tip(match_id: str):
 
     tip_repo.save_tip(user, match_id, home, away, is_risk)
     audit.tip_saved(user, match_id, home, away, is_risk)
+
+    if is_ajax:
+        return jsonify({"ok": True})
 
     flash(f"Tipp gespeichert: {home}:{away}" + (" (Hochrisikospiel)" if is_risk else ""), "success")
     return redirect(url_for("main.matchday", matchday=matchday))

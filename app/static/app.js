@@ -292,6 +292,70 @@ function savConfirm() {
     });
 }
 
+// ─── Auto-save tip when both scores are filled ───────────────
+(function () {
+  const _timers = {};
+
+  function tryAutoSave(matchId, homeInput, awayInput) {
+    if (homeInput.value === '' || awayInput.value === '') return;
+    const home = parseInt(homeInput.value, 10);
+    const away = parseInt(awayInput.value, 10);
+    if (isNaN(home) || isNaN(away) || home < 0 || away < 0) return;
+
+    clearTimeout(_timers[matchId]);
+    _timers[matchId] = setTimeout(function () {
+      fetch('/tip/' + encodeURIComponent(matchId), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: 'home_goals=' + home + '&away_goals=' + away,
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { if (data.ok) _onAutoSaved(matchId, homeInput); })
+        .catch(function () {});
+    }, 700);
+  }
+
+  function _onAutoSaved(matchId, anyInput) {
+    const card = anyInput.closest('.match-card');
+    if (!card) return;
+
+    card.classList.replace('match-open', 'match-tipped');
+
+    const badge = card.querySelector('.badge-status-open');
+    if (badge) {
+      badge.classList.replace('badge-status-open', 'badge-status-tipped');
+      badge.textContent = '● GETIPPT';
+    }
+
+    const riskBtn = card.querySelector('.btn-risk[disabled]');
+    if (riskBtn) {
+      riskBtn.disabled = false;
+      riskBtn.title = 'Hochrisikospiel aktivieren';
+    }
+
+    const inputsDiv = anyInput.closest('.tip-inputs');
+    if (inputsDiv) {
+      inputsDiv.classList.add('tip-inputs-saved');
+      setTimeout(function () { inputsDiv.classList.remove('tip-inputs-saved'); }, 1200);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.tip-inputs[data-match-id]').forEach(function (div) {
+      const matchId = div.dataset.matchId;
+      const homeInput = div.querySelector('input[name^="home_goals_"]');
+      const awayInput = div.querySelector('input[name^="away_goals_"]');
+      if (!homeInput || !awayInput) return;
+      function onChange() { tryAutoSave(matchId, homeInput, awayInput); }
+      homeInput.addEventListener('input', onChange);
+      awayInput.addEventListener('input', onChange);
+    });
+  });
+}());
+
 // ─── Admin: adjust points for a user ────────────────────────
 function adminAdjustPts(username, matchId, newVal) {
   const delta = parseFloat(newVal);
