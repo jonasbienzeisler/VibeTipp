@@ -8,15 +8,18 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# gosu for clean privilege drop in entrypoint
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
+
 COPY . .
 
-# Data dir is a volume
-RUN mkdir -p /data && chown vibetipp:vibetipp /data
+# Create data dir; entrypoint will chown it at runtime to handle existing volumes
+RUN mkdir -p /data
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-USER vibetipp
+# Stay as root so entrypoint can fix volume ownership, then drops to vibetipp via gosu
 
 ENV DATA_DIR=/data
 ENV FLASK_APP=main.py
