@@ -114,43 +114,27 @@ class PlayerResultsWriter:
                 lines.append(f"    Tipp     : {home_t}:{away_t}  ({t_tip}){risk_tag}")
                 lines.append(f"    {'─' * 50}")
                 tend_ok = "✓ RICHTIG" if bd.tendency_correct else "✗ FALSCH "
-                lines.append(
-                    f"    Tendenz          : {tend_ok}                 +{bd.tendency_pts} Pkt"
-                )
-                lines.append(
-                    f"    Exakt (effektiv) :                               +{bd.exactness_effective:.1f} Pkt"
-                )
-                lines.append(f"      Exaktes Ergebnis   : +{bd.exact_result_pts}")
-                lines.append(f"      Torunterschied     : +{bd.goal_diff_pts}")
-                lines.append(f"      Heimtore korrekt   : +{bd.home_goals_pts}")
-                lines.append(f"      Auswaertstore kor. : +{bd.away_goals_pts}")
-                lines.append(f"      Gesamttore         : +{bd.total_goals_pts}")
-                lines.append(
-                    f"    Torreich-Bonus   :                               +{bd.goalrich_pts} Pkt"
-                )
-                lines.append(
-                    f"    Pre-Rarity       : {bd.pre_rarity_pts:.1f} Pkt"
-                )
-                lines.append(
-                    f"    Raritaetsfaktor  : x{bd.rarity_factor:.2f}"
-                )
-                lines.append(
-                    f"    Basispunkte      : {bd.base_pts:.1f} Pkt"
-                )
+                category_label = {
+                    "exact":     "Exaktes Ergebnis (+4)",
+                    "goal_diff": "Torunterschied   (+3)",
+                    "tendency":  "Tendenz          (+2)",
+                    "none":      "Keine            (+0)",
+                }.get(bd.base_category, bd.base_category)
+                lines.append(f"    Tendenz          : {tend_ok}")
+                lines.append(f"    Kategorie        : {category_label:<28} +{bd.base_category_pts} Pkt")
+                lines.append(f"    Gesamttore       : {'✓ Treffer' if bd.total_goals_pts else '✗ Verfehlt':<28} +{bd.total_goals_pts} Pkt")
+                lines.append(f"    Pre-Rarity       : {bd.pre_rarity_pts:.1f} Pkt")
+                lines.append(f"    Raritaetsfaktor  : x{bd.rarity_factor:.2f}")
+                lines.append(f"    Basispunkte      : {bd.base_pts:.1f} Pkt")
                 if m["is_germany_game"]:
-                    lines.append(
-                        f"    Deutschland x2   : {bd.pts_after_germany:.1f} Pkt"
-                    )
+                    lines.append(f"    Deutschland x2   : {bd.pts_after_germany:.1f} Pkt")
                 if is_risk:
                     risk_labels = {
-                        "double":  "✓ VERDOPPELT (x2)",
-                        "deduct":  "✗ ABZUG (Punkte abgezogen!)",
-                        "neutral": "– NEUTRAL (Unentschieden-Tendenz)",
-                        "none":    "–",
+                        "double": "✓ VERDOPPELT (x2)",
+                        "deduct": "✗ ABZUG (-10 Pkt)",
+                        "none":   "–",
                     }
-                    lines.append(
-                        f"    Hochrisiko       : {risk_labels.get(bd.risk_result, bd.risk_result)}"
-                    )
+                    lines.append(f"    Hochrisiko       : {risk_labels.get(bd.risk_result, bd.risk_result)}")
                 lines.append(f"    {'─' * 50}")
                 lines.append(f"    FINALE PUNKTE    : {bd.final_pts:+.1f} Pkt")
 

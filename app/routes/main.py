@@ -27,7 +27,11 @@ def _build_leaderboard_data(username_filter=None, matchday_filter=None):
     users = [u for u in user_repo.all() if u["active"]]
 
     matches = match_repo.all() if not matchday_filter else match_repo.by_matchday(matchday_filter)
-    finished_matches = [m for m in matches if match_repo.is_locked(m)]
+    results_by_id = {r["match_id"]: r for r in result_repo.all()}
+    finished_matches = [
+        m for m in matches
+        if match_repo.is_locked(m) or results_by_id.get(m["match_id"], {}).get("status") == "final"
+    ]
 
     # Pre-compute all score breakdowns to avoid double-fetching
     # score_cache[(username, match_id)] = (bd, tip)
@@ -90,7 +94,7 @@ def _build_leaderboard_data(username_filter=None, matchday_filter=None):
             total_pts += bd.final_pts
             if bd.tendency_correct:
                 tendency_count += 1
-            if bd.exact_result_pts == 5:
+            if bd.base_category == "exact":
                 exact_count += 1
             if bd.risk_result == "double":
                 risk_ok += 1
@@ -344,7 +348,11 @@ def _get_last_evaluated_md():
 def _build_md_score_section(md, match_repo, tip_repo, result_repo, snapshot_repo, user_repo):
     """Build the data dict for one matchday's PUNKTE JE SPIELER table."""
     md_matches = match_repo.by_matchday(md)
-    active = [m for m in md_matches if match_repo.is_locked(m)]
+    results_by_id = {r["match_id"]: r for r in result_repo.all()}
+    active = [
+        m for m in md_matches
+        if match_repo.is_locked(m) or results_by_id.get(m["match_id"], {}).get("status") == "final"
+    ]
     if not active:
         return None
     users = [u for u in user_repo.all() if u["active"]]
