@@ -1,6 +1,10 @@
 FROM python:3.11-slim
 
-RUN groupadd -r vibetipp && useradd -r -g vibetipp vibetipp
+# Pin UIDs so volume ownership is stable across base-image updates
+RUN groupadd -r -g 1001 vibetipp && useradd -r -u 1001 -g vibetipp vibetipp
+
+# gosu for clean privilege drop in entrypoint (works in both Docker and rootless Podman)
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -9,15 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Create data dir owned by vibetipp so the app can write to the volume from the start
-RUN mkdir -p /data && chown vibetipp:vibetipp /data
+RUN mkdir -p /data
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
-# Run as vibetipp — this also means `docker exec` defaults to vibetipp,
-# so files created via exec are never root-owned
-USER vibetipp
 
 ENV DATA_DIR=/data
 ENV FLASK_APP=main.py
