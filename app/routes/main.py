@@ -289,7 +289,7 @@ def matchday(matchday: int):
             "score_bd": score_bd,
             "distrib": distrib,
             "potential_rarity": potential_rarity,
-            "locked": locked,
+            "locked": locked or (result is not None and result["status"] == "final"),
             "status": status,
             "is_risk": m["match_id"] == risk_match_id,
         })
