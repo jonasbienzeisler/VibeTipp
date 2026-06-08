@@ -229,6 +229,80 @@ def set_match_score(match_id: str):
     return redirect(url_for("admin.index"))
 
 
+@bp.post("/teams/save-all")
+@admin_required
+def save_all_team_names():
+    from collections import defaultdict
+    match_repo = current_app.match_repo
+    all_matches = match_repo.all()
+    GROUP_MATCHDAYS = {1, 2, 3}
+
+    # Build proposed map — last submitted value wins (team-resolution inputs appear after aktuelle-spiele)
+    proposed = {}
+    for match in all_matches:
+        mid = match["match_id"]
+        h_values = request.form.getlist(f"home_{mid}")
+        a_values = request.form.getlist(f"away_{mid}")
+        h = h_values[-1].strip() if h_values else ""
+        a = a_values[-1].strip() if a_values else ""
+        proposed[mid] = {
+            "home": h if h else match["home_team"],
+            "away": a if a else match["away_team"],
+        }
+
+    # Reject empty names
+    errors = []
+    for match in all_matches:
+        mid = match["match_id"]
+        if not proposed[mid]["home"] or not proposed[mid]["away"]:
+            errors.append(f"{mid}: Teamname darf nicht leer sein.")
+    if errors:
+        for e in errors:
+            flash(e, "error")
+        return redirect(url_for("admin.index"))
+
+    # Group stage: each old team name must map to exactly one new name across all occurrences
+    group_matches = [m for m in all_matches if m["matchday"] in GROUP_MATCHDAYS]
+    name_positions = defaultdict(list)
+    for m in group_matches:
+        name_positions[m["home_team"]].append((m["match_id"], "home"))
+        name_positions[m["away_team"]].append((m["match_id"], "away"))
+
+    for old_name, positions in name_positions.items():
+        if len(positions) <= 1:
+            continue
+        new_names = {proposed[mid][side] for mid, side in positions}
+        if len(new_names) > 1:
+            affected = ", ".join(mid for mid, _ in positions)
+            errors.append(
+                f"'{old_name}' kommt in {len(positions)} Gruppenspielen vor ({affected}) — "
+                f"alle müssen denselben neuen Namen bekommen."
+            )
+
+    if errors:
+        for e in errors:
+            flash(e, "error")
+        return redirect(url_for("admin.index"))
+
+    # Apply
+    count = 0
+    for match in all_matches:
+        mid = match["match_id"]
+        new_h, new_a = proposed[mid]["home"], proposed[mid]["away"]
+        if new_h != match["home_team"] or new_a != match["away_team"]:
+            match_repo.update_team_names(
+                mid,
+                new_h if new_h != match["home_team"] else None,
+                new_a if new_a != match["away_team"] else None,
+            )
+            count += 1
+
+    current_app.audit.admin_action(session["username"], f"team_names_saved count={count}")
+    flash(f"{count} Spiel{'e' if count != 1 else ''} aktualisiert." if count else "Keine Änderungen.",
+          "success" if count else "info")
+    return redirect(url_for("admin.index"))
+
+
 @bp.post("/resolve-teams")
 @admin_required
 def resolve_teams():

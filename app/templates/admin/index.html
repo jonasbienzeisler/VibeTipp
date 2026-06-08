@@ -33,9 +33,15 @@
     </form>
   </div>
 
+  <!-- Team names form — inputs throughout the page associate via form="team-names-form" -->
+  <form id="team-names-form" method="post" action="{{ url_for('admin.save_all_team_names') }}"></form>
+
   <!-- Current matches -->
   <div class="card">
-    <div class="card-title">AKTUELLE SPIELE</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+      <span class="card-title" style="margin:0">AKTUELLE SPIELE</span>
+      <button type="submit" form="team-names-form" class="btn btn-sm btn-primary" style="font-size:0.5rem;padding:0.15rem 0.5rem;">&gt; NAMEN SPEICHERN</button>
+    </div>
     <div class="admin-matches">
       {% for md in matchdays %}
       <div class="admin-matchday-header">SPIELTAG {{ md }}</div>
@@ -43,7 +49,15 @@
       {% set r = results.get(m.match_id) %}
       <div class="admin-match-row" style="flex-wrap:wrap;">
         <span class="admin-match-id">{{ m.match_id }}</span>
-        <span class="admin-teams">{{ m.home_team }} – {{ m.away_team }}</span>
+        <span class="admin-teams" style="display:flex;align-items:center;gap:0.25rem;flex:1">
+          <input type="text" name="home_{{ m.match_id }}" value="{{ m.home_team }}"
+                 form="team-names-form" class="admin-team-input"
+                 data-orig="{{ m.home_team }}">
+          <span style="color:var(--gold);font-size:0.5rem;flex-shrink:0">–</span>
+          <input type="text" name="away_{{ m.match_id }}" value="{{ m.away_team }}"
+                 form="team-names-form" class="admin-team-input"
+                 data-orig="{{ m.away_team }}">
+        </span>
         {% if r and r.status == 'final' %}
         <span class="admin-result badge-status-evaluated">{{ r.home_goals_actual }}:{{ r.away_goals_actual }} ✓</span>
         {% elif r %}
@@ -130,29 +144,46 @@
 
 {% if team_resolution_preview %}
 <div class="card" style="margin-top:1.5rem">
-  <div class="card-title">TEAM-AUFLÖSUNG</div>
-  <p class="card-desc" style="margin-bottom:0.5rem">Platzhalter durch tatsächliche Sieger ersetzen (Ergebnisse müssen final sein)</p>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+    <span class="card-title" style="margin:0">TEAM-AUFLÖSUNG</span>
+    <button type="submit" form="team-names-form" class="btn btn-sm btn-primary" style="font-size:0.5rem;padding:0.15rem 0.5rem;">&gt; NAMEN SPEICHERN</button>
+  </div>
+  <p class="card-desc" style="margin-bottom:0.5rem">
+    Automatisch auflösbare Platzhalter werden per Knopf gesetzt. Nicht auflösbare müssen manuell eingetragen werden.
+  </p>
   <div class="admin-matches" style="margin-bottom:0.75rem">
     {% for item in team_resolution_preview %}
-    <div class="admin-match-row" style="border-left:2px solid {% if item.resolvable %}var(--green){% else %}var(--red){% endif %};gap:0.5rem;">
+    <div class="admin-match-row" style="border-left:2px solid {% if item.resolvable %}var(--green){% else %}var(--gold){% endif %};gap:0.5rem;flex-wrap:wrap;">
       <span class="admin-match-id">{{ item.match_id }}</span>
+      {% if item.resolvable %}
       <span style="font-size:0.48rem;line-height:1.6;flex:1">
         <span style="color:var(--cyan)">H:</span> {{ item.home_current }}
-        → <strong style="color:{% if item.home_resolved %}var(--green){% else %}var(--red){% endif %}">{{ item.home_resolved or '?' }}</strong><br>
+        → <strong style="color:var(--green)">{{ item.home_resolved }}</strong><br>
         <span style="color:var(--cyan)">A:</span> {{ item.away_current }}
-        → <strong style="color:{% if item.away_resolved %}var(--green){% else %}var(--red){% endif %}">{{ item.away_resolved or '?' }}</strong>
+        → <strong style="color:var(--green)">{{ item.away_resolved }}</strong>
       </span>
-      <span class="badge-status-{% if item.resolvable %}evaluated{% else %}locked{% endif %}" style="font-size:0.42rem;align-self:center">
-        {% if item.resolvable %}BEREIT{% else %}AUSSTEHEND{% endif %}
+      <span class="badge-status-evaluated" style="font-size:0.42rem;align-self:center">BEREIT</span>
+      {% else %}
+      <span style="font-size:0.48rem;line-height:1.8;flex:1">
+        <span style="color:var(--cyan)">H:</span>
+        <input type="text" name="home_{{ item.match_id }}" value="{{ item.home_current }}"
+               form="team-names-form" class="admin-team-input" style="width:9rem"
+               data-orig="{{ item.home_current }}" placeholder="Teamname"><br>
+        <span style="color:var(--cyan)">A:</span>
+        <input type="text" name="away_{{ item.match_id }}" value="{{ item.away_current }}"
+               form="team-names-form" class="admin-team-input" style="width:9rem"
+               data-orig="{{ item.away_current }}" placeholder="Teamname">
       </span>
+      <span class="badge-status-locked" style="font-size:0.42rem;align-self:center">MANUELL</span>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
   {% set resolvable_count = team_resolution_preview | selectattr('resolvable') | list | length %}
   <form method="post" action="{{ url_for('admin.resolve_teams') }}">
-    <button type="submit" class="btn btn-primary btn-sm"
+    <button type="submit" class="btn btn-secondary btn-sm"
             {% if resolvable_count == 0 %}disabled{% endif %}>
-      &gt; {{ resolvable_count }} TEAM{% if resolvable_count != 1 %}S{% endif %} AUFLÖSEN
+      &gt; {{ resolvable_count }} TEAM{% if resolvable_count != 1 %}S{% endif %} AUTO-AUFLÖSEN
     </button>
   </form>
 </div>
@@ -194,6 +225,17 @@ M003;;; scheduled</pre>
 </div>
 
 <script>
+// Highlight placeholder team names (italic gold) so they stand out from real names
+(function() {
+  const PLACEHOLDER = /Sieger|Verlierer|Dritter|Gruppe|Platz|TBD/i;
+  document.querySelectorAll('.admin-team-input').forEach(function(el) {
+    if (PLACEHOLDER.test(el.value)) el.classList.add('is-placeholder');
+    el.addEventListener('input', function() {
+      el.classList.toggle('is-placeholder', PLACEHOLDER.test(el.value));
+    });
+  });
+})();
+
 function openPasswordModal(username) {
   document.getElementById('pw-modal-username').textContent = username;
   document.getElementById('pw-modal-form').action = '/admin/users/' + encodeURIComponent(username) + '/password';
