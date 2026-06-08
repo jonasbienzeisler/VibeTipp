@@ -6,8 +6,59 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t vibetipp:ci .
+
+      - name: Start container with fresh named volume
+        run: |
+          docker run -d --name vibetipp_ci \
+            -e SECRET_KEY=ci-test-secret \
+            -e DATA_DIR=/data \
+            -v vibetipp_ci_data:/data \
+            -p 8081:8081 \
+            vibetipp:ci
+
+      - name: Wait for healthy
+        run: |
+          for i in $(seq 1 20); do
+            STATUS=$(docker inspect --format '{{.State.Health.Status}}' vibetipp_ci 2>/dev/null || echo "starting")
+            echo "Health: $STATUS"
+            [ "$STATUS" = "healthy" ] && exit 0
+            sleep 3
+          done
+          echo "Container did not become healthy in time"
+          docker logs vibetipp_ci
+          exit 1
+
+      - name: Check /data ownership (all files must be owned by vibetipp uid 1001)
+        run: |
+          WRONG=$(docker exec vibetipp_ci sh -c "find /data -not -user vibetipp" )
+          if [ -n "$WRONG" ]; then
+            echo "Files in /data not owned by vibetipp:"
+            echo "$WRONG"
+            exit 1
+          fi
+          echo "All /data files owned by vibetipp — OK"
+
+      - name: Check app responds
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/)
+          [ "$CODE" = "200" ] || [ "$CODE" = "302" ] || { echo "Unexpected HTTP $CODE"; exit 1; }
+          echo "HTTP $CODE — OK"
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f vibetipp_ci && docker volume rm vibetipp_ci_data || true
+
   build-and-push:
     runs-on: ubuntu-latest
+    needs: test
     permissions:
       contents: read
       packages: write
