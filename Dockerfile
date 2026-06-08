@@ -1,6 +1,5 @@
 FROM python:3.11-slim
 
-# Non-root user for security
 RUN groupadd -r vibetipp && useradd -r -g vibetipp vibetipp
 
 WORKDIR /app
@@ -8,18 +7,17 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# gosu for clean privilege drop in entrypoint
-RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
-
 COPY . .
 
-# Create data dir; entrypoint will chown it at runtime to handle existing volumes
-RUN mkdir -p /data
+# Create data dir owned by vibetipp so the app can write to the volume from the start
+RUN mkdir -p /data && chown vibetipp:vibetipp /data
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Stay as root so entrypoint can fix volume ownership, then drops to vibetipp via gosu
+# Run as vibetipp — this also means `docker exec` defaults to vibetipp,
+# so files created via exec are never root-owned
+USER vibetipp
 
 ENV DATA_DIR=/data
 ENV FLASK_APP=main.py

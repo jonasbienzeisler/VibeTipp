@@ -70,8 +70,8 @@ The app is now running at **http://localhost:8081**
 ## 4 – Create the admin user
 
 ```bash
-docker exec -it --user vibetipp vibetipp python scripts/create_user.py admin "Admin" --admin
-# or: podman exec -it --user vibetipp VibeTipp python scripts/create_user.py admin "Admin" --admin
+docker exec -it vibetipp python scripts/create_user.py admin "Admin" --admin
+# or: podman exec -it VibeTipp python scripts/create_user.py admin "Admin" --admin
 ```
 
 You will be prompted to enter and confirm a password (min. 8 characters).
@@ -104,10 +104,10 @@ Log in at **http://localhost:8081** with the admin credentials from step 4.
 
 ```bash
 # regular user
-docker exec -it --user vibetipp vibetipp python scripts/create_user.py <username> "<Display Name>"
+docker exec -it vibetipp python scripts/create_user.py <username> "<Display Name>"
 
 # admin user
-docker exec -it --user vibetipp vibetipp python scripts/create_user.py <username> "<Display Name>" --admin
+docker exec -it vibetipp python scripts/create_user.py <username> "<Display Name>" --admin
 ```
 
 Users can also be created and managed through the admin panel in the web UI.
