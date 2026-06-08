@@ -15,6 +15,11 @@ def login_required(f):
     return decorated
 
 
+def _result_is_final(match_id: str) -> bool:
+    r = current_app.result_repo.find(match_id)
+    return r is not None and r["status"] == "final"
+
+
 def _validate_goals(value: str) -> tuple[int | None, str | None]:
     try:
         n = int(value)
@@ -43,10 +48,10 @@ def save_tip(match_id: str):
         flash("Spiel nicht gefunden.", "error")
         return redirect(url_for("main.dashboard"))
 
-    if match_repo.is_matchday_locked(match["matchday"]):
+    if match_repo.is_matchday_locked(match["matchday"]) or _result_is_final(match_id):
         if is_ajax:
             return jsonify({"ok": False, "error": "Tippfrist abgelaufen"}), 403
-        flash("Tippfrist abgelaufen – dieser Spieltag kann nicht mehr getippt werden.", "error")
+        flash("Tippfrist abgelaufen – dieses Spiel wurde bereits ausgewertet.", "error")
         return redirect(url_for("main.matchday", matchday=match["matchday"]))
 
     home_raw = request.form.get("home_goals", "")
@@ -107,7 +112,7 @@ def save_bulk_tips(matchday: int):
     saved = 0
     errors = []
     for m in matches:
-        if match_repo.is_locked(m):
+        if match_repo.is_locked(m) or _result_is_final(m["match_id"]):
             continue
         home_raw = request.form.get(f"home_goals_{m['match_id']}", "")
         away_raw = request.form.get(f"away_goals_{m['match_id']}", "")
@@ -147,7 +152,7 @@ def toggle_risk(match_id: str):
     user = session["username"]
 
     match = match_repo.find(match_id)
-    if not match or match_repo.is_matchday_locked(match["matchday"]):
+    if not match or match_repo.is_matchday_locked(match["matchday"]) or _result_is_final(match_id):
         flash("Hochrisikospiel kann nicht mehr geändert werden.", "error")
         return redirect(url_for("main.matchday", matchday=match["matchday"] if match else 1))
 

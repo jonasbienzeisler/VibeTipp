@@ -131,8 +131,8 @@ _USER_TIPS_PANEL_TEMPLATE = """
         <td class="utp-no-tip">–</td>
         {% endif %}
         {% if item.bd %}
-        <td style="font-size:0.42rem;color:{% if item.bd.tendency_correct %}var(--green){% else %}rgba(255,255,255,0.4){% endif %}">+{{ item.bd.tendency_pts }}</td>
-        <td style="font-size:0.42rem;color:var(--cyan)">+{{ "%.1f"|format(item.bd.exactness_effective) }}</td>
+        <td style="font-size:0.42rem;color:{% if item.bd.tendency_correct %}var(--green){% else %}rgba(255,255,255,0.4){% endif %}">+{{ 2 if item.bd.tendency_correct else 0 }}</td>
+        <td style="font-size:0.42rem;color:var(--cyan)">+{{ "%.1f"|format(item.bd.base_category_pts - (2 if item.bd.tendency_correct else 0) + item.bd.total_goals_pts) }}</td>
         <td style="font-size:0.42rem;color:var(--amber)">×{{ "%.2f"|format(item.bd.rarity_factor) }}</td>
         <td style="font-size:0.42rem;">
           {% if item.bd.risk_result == 'double' %}<span style="color:var(--purple)">×2</span>

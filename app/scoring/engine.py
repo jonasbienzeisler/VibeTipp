@@ -131,7 +131,7 @@ def calculate_score(
         bd.final_pts = round(bd.pts_after_germany * 2, 1)
     else:
         bd.risk_result = "deduct"
-        bd.final_pts = -10.0
+        bd.final_pts = -20.0 if is_germany else -10.0
 
     bd.pre_rarity_pts = round(bd.pre_rarity_pts, 1)
     bd.final_pts = round(bd.final_pts, 1)

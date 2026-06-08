@@ -129,9 +129,10 @@ class PlayerResultsWriter:
                 if m["is_germany_game"]:
                     lines.append(f"    Deutschland x2   : {bd.pts_after_germany:.1f} Pkt")
                 if is_risk:
+                    deduct_label = "✗ ABZUG (-20 Pkt)" if m["is_germany_game"] else "✗ ABZUG (-10 Pkt)"
                     risk_labels = {
                         "double": "✓ VERDOPPELT (x2)",
-                        "deduct": "✗ ABZUG (-10 Pkt)",
+                        "deduct": deduct_label,
                         "none":   "–",
                     }
                     lines.append(f"    Hochrisiko       : {risk_labels.get(bd.risk_result, bd.risk_result)}")
