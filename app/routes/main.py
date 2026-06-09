@@ -193,6 +193,11 @@ def dashboard():
         bool(user_data.get("sav_confirmed_at"))
     )
 
+    md1_kickoffs = [m["kickoff_at"] for m in match_repo.by_matchday(1) if m["kickoff_at"]]
+    wc_deadline = max(md1_kickoffs) if md1_kickoffs else None
+    wc_locked = bool(wc_deadline and datetime.now(timezone.utc) >= wc_deadline)
+    wc_pick = current_app.wc_pick_repo.get_pick(user)
+
     return render_template("dashboard.html",
         missing_count=missing_count,
         next_match=next_match,
@@ -205,6 +210,10 @@ def dashboard():
         matchdays=matchdays,
         now=now,
         sav_confirmed=sav_confirmed,
+        wc_pick=wc_pick,
+        wc_locked=wc_locked,
+        wc_deadline=wc_deadline,
+        wc_team_flags=_WC_TEAM_FLAGS,
     )
 
 
@@ -221,6 +230,23 @@ def confirm_training():
     user_data["sav_confirmed_at"] = datetime.now(timezone.utc).isoformat()
     user_repo.save(user_data)
     return jsonify({"ok": True})
+
+
+@bp.post("/world-cup-pick")
+@login_required
+def save_world_cup_pick():
+    user = session["username"]
+    md1_kickoffs = [m["kickoff_at"] for m in current_app.match_repo.by_matchday(1) if m["kickoff_at"]]
+    if md1_kickoffs and datetime.now(timezone.utc) >= max(md1_kickoffs):
+        flash("Das letzte Spiel von Spieltag 1 hat begonnen – WM-Sieger-Tipp ist gesperrt.", "error")
+        return redirect(url_for("main.dashboard"))
+    team = request.form.get("team", "").strip()
+    if team not in _WC_TEAM_FLAGS:
+        flash("Ungültige Teamauswahl.", "error")
+        return redirect(url_for("main.dashboard"))
+    current_app.wc_pick_repo.save_pick(user, team)
+    flash(f"WM-Sieger-Tipp gesetzt: {_WC_TEAM_FLAGS[team]} {team}", "success")
+    return redirect(url_for("main.dashboard"))
 
 
 @bp.route("/matchday/<int:matchday>")
@@ -503,6 +529,57 @@ def tip_detail(match_id: str):
         other_tips=other_tips,
     )
 
+
+_WC_TEAM_FLAGS = {
+    "Mexiko": "🇲🇽",
+    "Südafrika": "🇿🇦",
+    "Südkorea": "🇰🇷",
+    "Tschechien": "🇨🇿",
+    "Kanada": "🇨🇦",
+    "Bosnien und Herzegowina": "🇧🇦",
+    "Schweiz": "🇨🇭",
+    "Katar": "🇶🇦",
+    "Brasilien": "🇧🇷",
+    "Marokko": "🇲🇦",
+    "Schottland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+    "Haiti": "🇭🇹",
+    "USA": "🇺🇸",
+    "Paraguay": "🇵🇾",
+    "Australien": "🇦🇺",
+    "Türkei": "🇹🇷",
+    "Deutschland": "🇩🇪",
+    "Ecuador": "🇪🇨",
+    "Elfenbeinküste": "🇨🇮",
+    "Curaçao": "🇨🇼",
+    "Niederlande": "🇳🇱",
+    "Japan": "🇯🇵",
+    "Schweden": "🇸🇪",
+    "Tunesien": "🇹🇳",
+    "Belgien": "🇧🇪",
+    "Iran": "🇮🇷",
+    "Ägypten": "🇪🇬",
+    "Neuseeland": "🇳🇿",
+    "Spanien": "🇪🇸",
+    "Kap Verde": "🇨🇻",
+    "Saudi-Arabien": "🇸🇦",
+    "Uruguay": "🇺🇾",
+    "Frankreich": "🇫🇷",
+    "Senegal": "🇸🇳",
+    "Irak": "🇮🇶",
+    "Norwegen": "🇳🇴",
+    "Argentinien": "🇦🇷",
+    "Algerien": "🇩🇿",
+    "Österreich": "🇦🇹",
+    "Jordanien": "🇯🇴",
+    "Portugal": "🇵🇹",
+    "Kolumbien": "🇨🇴",
+    "Usbekistan": "🇺🇿",
+    "DR Kongo": "🇨🇩",
+    "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    "Kroatien": "🇭🇷",
+    "Panama": "🇵🇦",
+    "Ghana": "🇬🇭",
+}
 
 _WM_GROUPS = {
     "A": ["Mexiko", "Südafrika", "Südkorea", "Tschechien"],

@@ -60,9 +60,9 @@
     </button>
   </div>
 
-  <!-- Next Match -->
+  <!-- Next Match + WM-Sieger (merged) -->
   <div class="card">
-    <div class="card-title">NÄCHSTES SPIEL</div>
+    <div class="card-title">SPIELTAG{% if next_match %} {{ next_match.matchday }}{% endif %}</div>
     {% if next_match %}
     <div class="next-match">
       <div class="match-teams">
@@ -88,6 +88,36 @@
     {% else %}
     <div class="status-line status-info">KEIN OFFENES SPIEL</div>
     {% endif %}
+
+    <!-- WM-Sieger Tipp (inline) -->
+    <hr class="wc-card-divider">
+    <div class="wc-card-section">
+      <div class="wc-card-label">🏆 WM-SIEGER TIPP</div>
+      {% if wc_pick %}
+      <div class="wc-pick-inline{% if wc_locked %} wc-pick-inline-locked{% endif %}">
+        <span>{{ wc_team_flags.get(wc_pick, '🏳') }}</span>
+        <span>{{ wc_pick | upper }}</span>
+        {% if wc_locked %}<span>🔒</span>{% else %}<span style="color:var(--green)">✓</span>{% endif %}
+      </div>
+      {% else %}
+      <div class="wc-no-pick-inline">— NOCH NICHT GEWÄHLT —</div>
+      {% endif %}
+      {% if not wc_locked %}
+      {% if wc_deadline %}
+      <div class="wc-deadline-line">
+        DEADLINE: <span class="wc-deadline-countdown" data-wc-deadline="{{ wc_deadline.isoformat() }}">...</span>
+      </div>
+      {% endif %}
+      <button class="btn btn-secondary btn-full btn-sm" style="margin-top:0.2rem" onclick="openModal('modal-wc-picker')">
+        🏆 {% if wc_pick %}ÄNDERN{% else %}WM-SIEGER WÄHLEN{% endif %}
+      </button>
+      {% endif %}
+      <div class="wc-pts-info">
+        <span class="wc-pts-row"><span class="wc-pts wc-pts-gold">+40</span> Weltmeister</span>
+        <span class="wc-pts-row"><span class="wc-pts wc-pts-silver">+25</span> Vizemeister</span>
+        <span class="wc-pts-row"><span class="wc-pts wc-pts-bronze">+15</span> 3. Platz</span>
+      </div>
+    </div>
   </div>
 
   <!-- Ranking -->
@@ -142,6 +172,7 @@
       <a href="{{ url_for('main.wrap_up') }}" class="wrapup-star-btn">⭐ SPIELTAG ERGEBNISSE</a>
     </div>
   </div>
+
 
 </div>
 
@@ -274,4 +305,67 @@
     </div>
   </div>
 </div>
+
+<!-- WM-Sieger Picker Modal (Tekken style) -->
+{% if not wc_locked %}
+<div id="modal-wc-picker" class="info-modal wc-picker-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-wc-picker')">
+  <div class="wc-picker-box">
+    <div class="wc-picker-scanlines"></div>
+
+    <div class="wc-picker-header">
+      <div class="wc-picker-title-bar">
+        <span class="wc-blink">▶▶</span>
+        SELECT YOUR CHAMPION
+        <span class="wc-blink">◀◀</span>
+      </div>
+      <div class="wc-picker-subtitle">WEN TIPPST DU ALS WM-SIEGER 2026?</div>
+      <div class="wc-picker-pts-hint">1. PLATZ +40 PTS · 2. PLATZ +25 PTS · 3. PLATZ +15 PTS</div>
+      <button class="wc-picker-close" onclick="closeModal('modal-wc-picker')">✕</button>
+    </div>
+
+    <div class="wc-picker-grid-wrap">
+      <div class="wc-picker-grid" id="wc-picker-grid">
+        {% for team, flag in wc_team_flags.items() %}
+        <button type="button"
+                class="wc-team-tile{% if wc_pick == team %} wc-tile-selected{% endif %}"
+                data-team="{{ team }}"
+                onclick="wcSelectTeam(this)">
+          <span class="wc-tile-flag">{{ flag }}</span>
+          <span class="wc-tile-name">{{ team | upper }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="wc-picker-footer">
+      <div class="wc-selected-display" id="wc-selected-display">
+        {% if wc_pick %}
+        {{ wc_team_flags.get(wc_pick, '🏳') }} {{ wc_pick | upper }}
+        {% else %}
+        — KEIN TEAM GEWÄHLT —
+        {% endif %}
+      </div>
+      <form method="post" action="{{ url_for('main.save_world_cup_pick') }}" id="wc-pick-form">
+        <input type="hidden" name="team" id="wc-team-input" value="{{ wc_pick or '' }}">
+        <button type="submit" class="btn btn-primary wc-confirm-btn" id="wc-confirm-btn"
+                {% if not wc_pick %}disabled{% endif %}>
+          ▶ AUSWAHL BESTÄTIGEN
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function wcSelectTeam(tile) {
+  document.querySelectorAll('.wc-team-tile').forEach(t => t.classList.remove('wc-tile-selected'));
+  tile.classList.add('wc-tile-selected');
+  const team = tile.dataset.team;
+  const flag = tile.querySelector('.wc-tile-flag').textContent;
+  document.getElementById('wc-team-input').value = team;
+  document.getElementById('wc-selected-display').textContent = flag + ' ' + team.toUpperCase();
+  document.getElementById('wc-confirm-btn').disabled = false;
+}
+</script>
+{% endif %}
 {% endblock %}

@@ -221,6 +221,58 @@ M003;;; scheduled</pre>
         </form>
       </div>
     </div>
+  <!-- WM-Sieger Punkte vergeben -->
+  <div class="card">
+    <div class="card-title">🏆 WM-SIEGER PUNKTE VERGEBEN</div>
+    <p class="card-desc">Nach Turnierende: Finalplatzierungen eintragen und Punkte automatisch vergeben (1. +40, 2. +25, 3. +15).<br>
+    <strong style="color:var(--red)">⚠ Nur einmal ausführen!</strong> Mehrfache Ausführung ergibt doppelte Punkte.</p>
+    <div style="margin-bottom:0.75rem;font-size:0.5rem;color:rgba(255,255,255,0.5);">
+      AKTUELLE TIPPS: {{ wc_picks_all|length }} Nutzer haben einen WM-Sieger-Tipp abgegeben.
+      {% if wc_picks_all %}
+      <div style="margin-top:0.3rem;display:flex;flex-wrap:wrap;gap:0.25rem">
+        {% for pick in wc_picks_all %}
+        <span style="border:1px solid rgba(255,215,0,0.3);padding:0.1rem 0.3rem;font-size:0.45rem;color:var(--gold)">
+          {{ pick.username }}: {{ wc_team_flags.get(pick.team, '?') }} {{ pick.team }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    <form method="post" action="{{ url_for('admin.award_world_cup_points') }}"
+          onsubmit="return confirm('WM-Sieger-Punkte vergeben? Nur einmal ausführen!')">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:0.75rem">
+        <div>
+          <label class="form-label" style="color:var(--gold)">🥇 1. PLATZ</label>
+          <select name="first_place" class="form-input admin-score-select" style="width:100%;font-size:0.5rem">
+            <option value="">— wählen —</option>
+            {% for team, flag in wc_team_flags.items() %}
+            <option value="{{ team }}">{{ flag }} {{ team }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label" style="color:var(--silver)">🥈 2. PLATZ</label>
+          <select name="second_place" class="form-input admin-score-select" style="width:100%;font-size:0.5rem">
+            <option value="">— wählen —</option>
+            {% for team, flag in wc_team_flags.items() %}
+            <option value="{{ team }}">{{ flag }} {{ team }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label" style="color:var(--bronze)">🥉 3. PLATZ</label>
+          <select name="third_place" class="form-input admin-score-select" style="width:100%;font-size:0.5rem">
+            <option value="">— wählen —</option>
+            {% for team, flag in wc_team_flags.items() %}
+            <option value="{{ team }}">{{ flag }} {{ team }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">&gt; PUNKTE VERGEBEN</button>
+    </form>
+  </div>
+
   </div>
 </div>
 

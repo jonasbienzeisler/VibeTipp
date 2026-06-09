@@ -1288,6 +1288,274 @@ body {
 .admin-team-input:focus { border-color: rgba(0,229,255,0.7); outline: none; color: var(--cyan); }
 .admin-team-input.is-placeholder { color: var(--gold); font-style: italic; border-color: rgba(255,215,0,0.5); }
 
+/* ── TWEMOJI ── */
+img.emoji {
+  height: 1em; width: 1em;
+  margin: 0; padding: 0;
+  display: inline-block;
+  vertical-align: -0.125em;
+}
+.wc-tile-flag img.emoji  { height: 1.8rem; width: 1.8rem; vertical-align: middle; }
+.wc-pick-flag img.emoji  { height: 2.5rem; width: 2.5rem; vertical-align: middle; }
+.wc-pick-inline img.emoji { height: 1.4rem; width: 1.4rem; vertical-align: middle; }
+
+/* WC card section divider */
+.wc-card-divider {
+  border: none;
+  border-top: 1px solid rgba(255,215,0,0.25);
+  margin: 0.75rem 0 0.6rem;
+}
+.wc-card-section { display: flex; flex-direction: column; gap: 0.35rem; }
+.wc-card-label {
+  font-size: 0.5rem; color: var(--gold); letter-spacing: 2px;
+  display: flex; align-items: center; gap: 0.3rem;
+}
+.wc-pick-inline {
+  font-size: 0.6rem; color: var(--white); letter-spacing: 1px;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.wc-pick-inline-locked { color: rgba(255,255,255,0.5); }
+.wc-no-pick-inline {
+  font-size: 0.5rem; color: rgba(255,255,255,0.35); letter-spacing: 1px;
+}
+.wc-deadline-line {
+  font-size: 0.45rem; color: var(--amber); letter-spacing: 1px;
+}
+.wc-deadline-countdown {
+  display: inline; font-variant-numeric: tabular-nums;
+}
+
+/* ── WM-SIEGER PICKER (Tekken style) ── */
+.wc-picker-modal {
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.88);
+}
+.wc-picker-box {
+  position: relative;
+  width: min(98vw, 900px);
+  max-height: 92vh;
+  background: #00020e;
+  border: 3px solid var(--gold);
+  box-shadow: 0 0 40px rgba(255,215,0,0.35), inset 0 0 60px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.wc-picker-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.18) 3px,
+    rgba(0,0,0,0.18) 4px
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+.wc-picker-header {
+  position: relative;
+  background: linear-gradient(180deg, #0a0a0a 0%, #000510 100%);
+  border-bottom: 3px solid var(--gold);
+  padding: 0.75rem 1rem 0.6rem;
+  text-align: center;
+  z-index: 6;
+}
+.wc-picker-title-bar {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  color: var(--gold);
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px rgba(255,215,0,0.8), 2px 2px 0 #000;
+  margin-bottom: 0.3rem;
+}
+.wc-picker-subtitle {
+  font-family: var(--font);
+  font-size: 0.5rem;
+  color: rgba(255,255,255,0.7);
+  letter-spacing: 3px;
+  margin-bottom: 0.2rem;
+}
+.wc-picker-pts-hint {
+  font-family: var(--font);
+  font-size: 0.4rem;
+  color: rgba(255,215,0,0.6);
+  letter-spacing: 2px;
+}
+.wc-picker-close {
+  position: absolute;
+  top: 0.5rem; right: 0.5rem;
+  background: none;
+  border: 2px solid rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.5);
+  font-family: var(--font);
+  font-size: 0.65rem;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+  transition: all 0.1s;
+  z-index: 7;
+}
+.wc-picker-close:hover { border-color: var(--red); color: var(--red); }
+.wc-picker-grid-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+  background: #000208;
+}
+.wc-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.5rem;
+}
+.wc-team-tile {
+  background: rgba(0,4,20,0.9);
+  border: 2px solid rgba(255,215,0,0.25);
+  padding: 0.5rem 0.3rem;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.12s;
+  font-family: var(--font);
+  position: relative;
+  z-index: 2;
+}
+.wc-team-tile:hover {
+  border-color: var(--gold);
+  background: rgba(255,215,0,0.1);
+  box-shadow: 0 0 10px rgba(255,215,0,0.35);
+  transform: scale(1.04);
+}
+.wc-team-tile.wc-tile-selected {
+  border-color: var(--gold);
+  background: rgba(255,215,0,0.18);
+  box-shadow: 0 0 18px rgba(255,215,0,0.6), inset 0 0 8px rgba(255,215,0,0.12);
+  animation: wc-tile-pulse 1.1s ease-in-out infinite alternate;
+}
+@keyframes wc-tile-pulse {
+  from { box-shadow: 0 0 14px rgba(255,215,0,0.5), inset 0 0 6px rgba(255,215,0,0.1); }
+  to   { box-shadow: 0 0 26px rgba(255,215,0,0.9), inset 0 0 14px rgba(255,215,0,0.2); }
+}
+.wc-tile-flag { font-size: 1.8rem; line-height: 1; }
+.wc-tile-name {
+  font-size: 0.38rem;
+  color: rgba(255,255,255,0.8);
+  letter-spacing: 1px;
+  word-break: break-word;
+  text-align: center;
+  line-height: 1.4;
+}
+.wc-team-tile.wc-tile-selected .wc-tile-name { color: var(--gold); }
+.wc-picker-footer {
+  background: #000208;
+  border-top: 3px solid var(--gold);
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  z-index: 6;
+  position: relative;
+}
+.wc-selected-display {
+  font-family: var(--font);
+  font-size: 0.55rem;
+  color: var(--gold);
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(255,215,0,0.5);
+  flex: 1;
+  text-align: left;
+}
+.wc-confirm-btn {
+  font-size: 0.6rem !important;
+  padding: 0.5rem 1.2rem !important;
+  letter-spacing: 2px;
+}
+.wc-confirm-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+@keyframes wc-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+.wc-blink { animation: wc-blink 0.9s step-end infinite; }
+
+/* Dashboard WC card */
+.wc-current-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0;
+}
+.wc-pick-flag { font-size: 2.5rem; line-height: 1; }
+.wc-pick-name {
+  font-size: 0.55rem;
+  color: var(--white);
+  letter-spacing: 2px;
+  text-align: center;
+}
+.wc-pick-locked {
+  font-size: 0.45rem;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 2px;
+}
+.wc-pick-mutable {
+  font-size: 0.45rem;
+  color: var(--green);
+  letter-spacing: 2px;
+}
+.wc-no-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0;
+}
+.wc-no-pick-icon {
+  font-size: 2rem;
+  color: rgba(255,215,0,0.3);
+  font-family: var(--font);
+}
+.wc-no-pick-text {
+  font-size: 0.45rem;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 2px;
+}
+.wc-pts-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255,215,0,0.2);
+}
+.wc-pts-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.45rem;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 1px;
+}
+.wc-pts {
+  font-family: var(--font);
+  font-size: 0.5rem;
+  font-weight: bold;
+  min-width: 2.5rem;
+  text-align: right;
+}
+.wc-pts-gold   { color: var(--gold); text-shadow: 0 0 6px rgba(255,215,0,0.5); }
+.wc-pts-silver { color: var(--silver); }
+.wc-pts-bronze { color: var(--bronze); }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 700px) {
   body { font-size: 10px; }

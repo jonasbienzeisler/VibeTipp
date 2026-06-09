@@ -29,6 +29,7 @@ def admin_required(f):
 @admin_required
 def index():
     from app.admin.team_resolver import get_resolution_preview
+    from app.routes.main import _WC_TEAM_FLAGS
     match_repo = current_app.match_repo
     result_repo = current_app.result_repo
     user_repo = current_app.user_repo
@@ -36,12 +37,16 @@ def index():
     results = {r["match_id"]: r for r in result_repo.all()}
     users = user_repo.all()
     team_resolution_preview = get_resolution_preview(match_repo, result_repo)
+    wc_picks_all = current_app.wc_pick_repo.all()
+    wc_team_flags = _WC_TEAM_FLAGS
     return render_template("admin/index.html",
         matchdays=matchdays,
         match_repo=match_repo,
         results=results,
         users=users,
         team_resolution_preview=team_resolution_preview,
+        wc_picks_all=wc_picks_all,
+        wc_team_flags=wc_team_flags,
     )
 
 
@@ -359,6 +364,55 @@ def adjust_user_points(username: str):
         f"points_adjusted target={username} delta={delta} note={note}",
     )
     flash(f"Punkte für '{username}' angepasst: {delta:+.1f}.", "success")
+    return redirect(url_for("admin.index"))
+
+
+@bp.post("/world-cup-award")
+@admin_required
+def award_world_cup_points():
+    from app.routes.main import _WC_TEAM_FLAGS
+    first = request.form.get("first_place", "").strip()
+    second = request.form.get("second_place", "").strip()
+    third = request.form.get("third_place", "").strip()
+
+    valid_teams = set(_WC_TEAM_FLAGS.keys())
+    errors = []
+    if first and first not in valid_teams:
+        errors.append(f"Unbekanntes Team für 1. Platz: {first!r}")
+    if second and second not in valid_teams:
+        errors.append(f"Unbekanntes Team für 2. Platz: {second!r}")
+    if third and third not in valid_teams:
+        errors.append(f"Unbekanntes Team für 3. Platz: {third!r}")
+    if errors:
+        for e in errors:
+            flash(e, "error")
+        return redirect(url_for("admin.index"))
+
+    picks = current_app.wc_pick_repo.all()
+    adj_repo = current_app.adj_repo
+    awarded = 0
+    for pick in picks:
+        username = pick["username"]
+        team = pick["team"]
+        if first and team == first:
+            adj_repo.add(username, 40, f"WM-Sieger-Tipp: {team} – 1. Platz")
+            awarded += 1
+        elif second and team == second:
+            adj_repo.add(username, 25, f"WM-Sieger-Tipp: {team} – 2. Platz")
+            awarded += 1
+        elif third and team == third:
+            adj_repo.add(username, 15, f"WM-Sieger-Tipp: {team} – 3. Platz")
+            awarded += 1
+
+    current_app.player_results_writer.generate_all(
+        current_app.user_repo, current_app.match_repo, current_app.tip_repo,
+        current_app.result_repo, current_app.snapshot_repo, current_app.adj_repo,
+    )
+    current_app.audit.admin_action(
+        session["username"],
+        f"wc_points_awarded first={first} second={second} third={third} count={awarded}",
+    )
+    flash(f"WM-Sieger-Punkte vergeben: {awarded} Nutzer belohnt.", "success")
     return redirect(url_for("admin.index"))
 
 

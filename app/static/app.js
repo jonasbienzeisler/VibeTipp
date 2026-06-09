@@ -86,6 +86,17 @@ function updateCountdowns() {
     }
   });
 
+  document.querySelectorAll('[data-wc-deadline]').forEach(el => {
+    const deadline = new Date(el.dataset.wcDeadline).getTime();
+    const diff = Math.floor((deadline - now) / 1000);
+    if (diff <= 0) {
+      el.textContent = 'ABGELAUFEN';
+      el.style.color = 'var(--red)';
+    } else {
+      el.textContent = 'NOCH ' + fmtCountdown(diff);
+    }
+  });
+
   document.querySelectorAll('.countdown-sm[data-kickoff]').forEach(el => {
     const kickoff = new Date(el.dataset.kickoff).getTime();
     const diff = Math.floor((kickoff - now) / 1000);
