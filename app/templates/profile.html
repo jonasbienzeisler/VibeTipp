@@ -34,9 +34,21 @@
         {% if user.paid %}
         <span style="color: var(--green); font-size: 0.65rem;">BEZAHLT</span>
         {% else %}
-        <a href="{{ payment_link }}" target="_blank" rel="noopener"
-           style="color: var(--red); font-size: 0.65rem; text-decoration: underline; cursor: pointer;">NOCH NICHT BEZAHLT</a>
+        <span style="color: var(--red); font-size: 0.65rem;">NOCH NICHT BEZAHLT</span>
         {% endif %}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">PAYPAL POOL</span>
+      <div style="padding: 0.3rem 0;">
+        <a href="https://www.paypal.com/pool/9pFXRftPs2" target="_blank" rel="noopener noreferrer"
+           style="color: var(--gold); font-size: 0.6rem; text-decoration: underline; word-break: break-all;">
+          &gt; JETZT EINZAHLEN
+        </a>
+        <div style="font-size: 0.5rem; color: rgba(255,255,255,0.4); margin-top: 0.25rem;">
+          Zahlung wird vom Admin bestätigt
+        </div>
       </div>
     </div>
 

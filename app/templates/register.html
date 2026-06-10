@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VibeTipp :: Login</title>
+  <title>VibeTipp :: Konto erstellen</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
@@ -19,7 +19,7 @@
   <div class="login-container" style="position:relative">
     <div class="login-header">
       <div class="login-logo">[VIBETIPP]</div>
-      <div class="login-sub">WM 2026 TIPPRUNDE</div>
+      <div class="login-sub">KONTO ERSTELLEN</div>
       <div class="login-inst">INSTITUTS-INTERN &bull; NICHT ÖFFENTLICH</div>
     </div>
 
@@ -32,28 +32,44 @@
       {% endfor %}
     {% endwith %}
 
-    <form method="post" class="login-form" autocomplete="off" id="login-form">
+    <form method="post" class="login-form" autocomplete="off" id="register-form">
       <div class="form-group">
         <label for="username" class="form-label">NUTZERNAME</label>
         <input type="text" id="username" name="username" class="form-input"
                autocomplete="username" autofocus required
-               value="{{ request.form.get('username', '') }}">
+               pattern="[A-Za-z0-9_\-]{3,32}"
+               title="3–32 Zeichen: Buchstaben, Ziffern, _ oder -"
+               maxlength="32"
+               value="{{ username | default('', true) | e }}">
+        <span class="form-hint" style="display:block; margin-top:0.3rem; font-size:0.5rem; color: rgba(255,255,255,0.5);">3–32 Zeichen, nur A-Z, 0-9, _ oder -</span>
+      </div>
+      <div class="form-group">
+        <label for="display_name" class="form-label">ANZEIGENAME</label>
+        <input type="text" id="display_name" name="display_name" class="form-input"
+               autocomplete="off" maxlength="50"
+               value="{{ display_name | default('', true) | e }}">
+        <span class="form-hint" style="display:block; margin-top:0.3rem; font-size:0.5rem; color: rgba(255,255,255,0.5);">Optional – wird im Highscore angezeigt</span>
       </div>
       <div class="form-group">
         <label for="password" class="form-label">PASSWORT</label>
         <input type="password" id="password" name="password" class="form-input"
-               autocomplete="current-password" required>
+               autocomplete="new-password" required minlength="8">
+        <span class="form-hint" style="display:block; margin-top:0.3rem; font-size:0.5rem; color: rgba(255,255,255,0.5);">Mindestens 8 Zeichen</span>
+      </div>
+      <div class="form-group">
+        <label for="confirm_password" class="form-label">PASSWORT BESTÄTIGEN</label>
+        <input type="password" id="confirm_password" name="confirm_password" class="form-input"
+               autocomplete="new-password" required minlength="8">
       </div>
       <button type="submit" class="btn btn-primary btn-full">
-        &gt; ANMELDEN
+        &gt; KONTO ANLEGEN
       </button>
     </form>
 
-    <div style="text-align:center; margin-top:1rem;">
-      <a href="{{ url_for('auth.register') }}"
-         class="btn btn-secondary btn-full"
-         style="display:block; text-align:center; text-decoration:none;">
-        &gt; KONTO ERSTELLEN
+    <div style="text-align:center; margin-top:1.2rem;">
+      <a href="{{ url_for('auth.login') }}"
+         style="font-size:0.55rem; color: rgba(255,255,255,0.5); text-decoration:underline; font-family: inherit;">
+        &lt; ZURÜCK ZUM LOGIN
       </a>
     </div>
 
@@ -68,7 +84,13 @@
        alt="" class="login-char" aria-hidden="true">
 
   <script>
-    document.getElementById('login-form').addEventListener('submit', function() {
+    document.getElementById('register-form').addEventListener('submit', function() {
+      var pw = document.getElementById('password').value;
+      var cpw = document.getElementById('confirm_password').value;
+      if (pw !== cpw) {
+        alert('Passwörter stimmen nicht überein.');
+        return false;
+      }
       document.getElementById('loading-overlay').style.display = 'flex';
     });
   </script>
