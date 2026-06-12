@@ -122,7 +122,6 @@ class PlayerResultsWriter:
                 }.get(bd.base_category, bd.base_category)
                 lines.append(f"    Tendenz          : {tend_ok}")
                 lines.append(f"    Kategorie        : {category_label:<28} +{bd.base_category_pts} Pkt")
-                lines.append(f"    Gesamttore       : {'✓ Treffer' if bd.total_goals_pts else '✗ Verfehlt':<28} +{bd.total_goals_pts} Pkt")
                 lines.append(f"    Pre-Rarity       : {bd.pre_rarity_pts:.1f} Pkt")
                 lines.append(f"    Raritaetsfaktor  : x{bd.rarity_factor:.2f}")
                 lines.append(f"    Basispunkte      : {bd.base_pts:.1f} Pkt")
