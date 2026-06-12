@@ -78,14 +78,6 @@
         </tr>
         {% endif %}
 
-        {% if score_bd.total_goals_pts > 0 %}
-        <tr class="row-ok">
-          <td class="bd-label">RICHTIGE GESAMTTORE</td>
-          <td class="bd-val">{{ score_bd.tip_home + score_bd.tip_away }} = {{ score_bd.actual_home + score_bd.actual_away }}</td>
-          <td class="bd-pts">+1</td>
-        </tr>
-        {% endif %}
-
         {% if score_bd.rarity_factor != 1.0 %}
         <tr class="row-base">
           <td class="bd-label">TEILSUMME</td>
@@ -127,10 +119,17 @@
         </tr>
         {% endif %}
 
+        {% if got_bonus %}
+        <tr class="row-ok">
+          <td class="bd-label">⭐ MEISTE TORE GETIPPT</td>
+          <td class="bd-val">{{ score_bd.tip_home + score_bd.tip_away }} Tore (höchste Summe)</td>
+          <td class="bd-pts">+1</td>
+        </tr>
+        {% endif %}
         <tr class="row-final">
           <td class="bd-label">FINALE PUNKTE</td>
           <td class="bd-val"></td>
-          <td class="bd-pts bd-final">{{ "%.1f" | format(score_bd.final_pts) }}</td>
+          <td class="bd-pts bd-final">{{ "%.1f" | format(score_bd.final_pts + (1 if got_bonus else 0)) }}</td>
         </tr>
       </tbody>
     </table>
@@ -171,6 +170,7 @@
           <th class="bd-label" style="text-align:left">SPIELER</th>
           <th class="bd-val">TIPP</th>
           <th class="bd-val">RISK</th>
+          <th class="bd-val" title="Meiste Tore getippt">★</th>
           <th class="bd-pts">PUNKTE</th>
         </tr>
       </thead>
@@ -185,10 +185,12 @@
           <td class="bd-val" style="color:rgba(255,255,255,0.3)">–</td>
           <td class="bd-val">–</td>
           {% endif %}
+          <td class="bd-val" style="color:var(--gold)">{% if ot.has_bonus %}⭐{% else %}–{% endif %}</td>
           {% if ot.bd %}
-          <td class="bd-pts {% if ot.bd.final_pts > 0 %}bd-final{% endif %}"
-              style="{% if ot.bd.final_pts < 0 %}color:var(--red){% elif ot.bd.final_pts > 0 %}color:var(--green){% endif %}">
-            {% if ot.bd.final_pts > 0 %}+{% endif %}{{ "%.1f"|format(ot.bd.final_pts) }}
+          {% set ot_pts = ot.bd.final_pts + (1 if ot.has_bonus else 0) %}
+          <td class="bd-pts {% if ot_pts > 0 %}bd-final{% endif %}"
+              style="{% if ot_pts < 0 %}color:var(--red){% elif ot_pts > 0 %}color:var(--green){% endif %}">
+            {% if ot_pts > 0 %}+{% endif %}{{ "%.1f"|format(ot_pts) }}
           </td>
           {% else %}
           <td class="bd-pts" style="color:rgba(255,255,255,0.3)">–</td>

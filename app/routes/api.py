@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, session, redirect, url_for, current_app, render_template_string
 from markupsafe import escape
 from app.scoring.engine import calculate_potential_rarity, get_tendency, Tendency, calculate_score
+from app.routes.main import _compute_bonus_by_match
 from app import config as app_config
 from datetime import datetime, timezone
 
@@ -108,6 +109,7 @@ _USER_TIPS_PANEL_TEMPLATE = """
         <th title="Exakt (effektiv)">EX.</th>
         <th title="Raritätsfaktor">×R</th>
         <th title="Hochrisiko">RISK</th>
+        <th title="Meiste Tore getippt">★</th>
         <th>PUNKTE</th>
       </tr>
     </thead>
@@ -143,6 +145,7 @@ _USER_TIPS_PANEL_TEMPLATE = """
         {% else %}
         <td>–</td><td>–</td><td>–</td><td>–</td>
         {% endif %}
+        <td style="font-size:0.42rem;color:var(--gold)">{% if item.has_bonus %}⭐+1{% else %}–{% endif %}</td>
         {% if item.pts is not none %}
           {% if item.pts > 0 %}
           <td class="utp-pts-pos">+{{ "%.1f"|format(item.pts) }}</td>
@@ -157,9 +160,9 @@ _USER_TIPS_PANEL_TEMPLATE = """
       </tr>
       {% endfor %}
       <tr class="utp-subtotal-row">
-        <td colspan="7" style="text-align:right;font-size:0.45rem;color:rgba(255,255,255,0.5);">SPIELTAG {{ section.matchday }} GESAMT</td>
+        <td colspan="8" style="text-align:right;font-size:0.45rem;color:rgba(255,255,255,0.5);">SPIELTAG {{ section.matchday }} GESAMT</td>
         {% set md_sum = namespace(v=0.0) %}
-        {% for p in section.games %}{% if p.pts is not none %}{% set md_sum.v = md_sum.v + p.pts %}{% endif %}{% endfor %}
+        {% for p in section.games %}{% if p.pts is not none %}{% set md_sum.v = md_sum.v + p.pts %}{% endif %}{% if p.has_bonus %}{% set md_sum.v = md_sum.v + 1 %}{% endif %}{% endfor %}
         {% if md_sum.v > 0 %}
         <td class="utp-pts-pos">+{{ "%.1f"|format(md_sum.v) }}</td>
         {% elif md_sum.v < 0 %}
@@ -198,6 +201,7 @@ def user_tips_panel(username: str):
 
     display_name = user.get("display_name", username)
     matchdays = match_repo.matchdays()
+    all_active_users = [u for u in user_repo.all() if u["active"]]
     sections = []
 
     for md in matchdays:
@@ -207,6 +211,7 @@ def user_tips_panel(username: str):
                      (r := result_repo.find(m["match_id"])) and r["status"] == "final"]
         if not evaluated:
             continue
+        bonus_by_match = _compute_bonus_by_match(evaluated, all_active_users, tip_repo, result_repo)
         items = []
         for m in evaluated:
             tip = tip_repo.get_user_tip(username, m["match_id"])
@@ -233,6 +238,7 @@ def user_tips_panel(username: str):
                 "result_away": result["away_goals_actual"],
                 "bd": bd,
                 "pts": pts,
+                "has_bonus": bonus_by_match.get(username, {}).get(m["match_id"], False),
             })
         sections.append({"matchday": md, "games": items})
 
@@ -390,6 +396,7 @@ _USER_MATCHDAY_DETAIL_TEMPLATE = """
         <th>TIPP</th>
         <th>ERG.</th>
         <th>RISK</th>
+        <th title="Meiste Tore getippt">★</th>
         <th>PTS</th>
       </tr>
     </thead>
@@ -405,15 +412,17 @@ _USER_MATCHDAY_DETAIL_TEMPLATE = """
         {% if item.result_home is not none %}<td class="utp-result">{{ item.result_home }}:{{ item.result_away }}</td>
         {% else %}<td class="utp-no-tip" style="font-size:0.35rem">OFFEN</td>{% endif %}
         <td>{% if item.is_risk %}<span style="color:var(--purple)">!</span>{% else %}<span style="color:rgba(255,255,255,0.25)">&#8211;</span>{% endif %}</td>
+        <td style="font-size:0.42rem;color:var(--gold)">{% if item.has_bonus %}&#11088;+1{% else %}&#8211;{% endif %}</td>
         {% if item.pts is not none %}
-          {% if item.pts > 0 %}<td class="utp-pts-pos">+{{ "%.1f"|format(item.pts) }}</td>
-          {% elif item.pts < 0 %}<td class="utp-pts-neg">{{ "%.1f"|format(item.pts) }}</td>
+          {% set display_pts = item.pts + (1 if item.has_bonus else 0) %}
+          {% if display_pts > 0 %}<td class="utp-pts-pos">+{{ "%.1f"|format(display_pts) }}</td>
+          {% elif display_pts < 0 %}<td class="utp-pts-neg">{{ "%.1f"|format(display_pts) }}</td>
           {% else %}<td class="utp-pts-zero">0</td>{% endif %}
         {% else %}<td class="utp-no-tip">&#8211;</td>{% endif %}
       </tr>
       {% endfor %}
       <tr class="utp-subtotal-row">
-        <td colspan="4" style="text-align:right;color:rgba(255,255,255,0.5);font-size:0.4rem">GESAMT SPIELTAG {{ matchday }}</td>
+        <td colspan="5" style="text-align:right;color:rgba(255,255,255,0.5);font-size:0.4rem">GESAMT SPIELTAG {{ matchday }}</td>
         {% if total_pts > 0 %}<td class="utp-pts-pos">+{{ "%.1f"|format(total_pts) }}</td>
         {% elif total_pts < 0 %}<td class="utp-pts-neg">{{ "%.1f"|format(total_pts) }}</td>
         {% else %}<td class="utp-pts-zero">0</td>{% endif %}
@@ -472,6 +481,14 @@ def matchday_overview(matchday: int):
                 )
                 match_pts[uname][m["match_id"]] = bd.final_pts
 
+    bonus_by_match = _compute_bonus_by_match(locked_matches, users, tip_repo, result_repo)
+    # Add bonus to match_pts for display
+    for u in users:
+        uname = u["username"]
+        for m in locked_matches:
+            if bonus_by_match.get(uname, {}).get(m["match_id"]):
+                match_pts[uname][m["match_id"]] = match_pts[uname].get(m["match_id"], 0.0) + 1
+
     # Build matchday ranking inline (avoids cross-module import)
     ranking = []
     for u in users:
@@ -524,12 +541,16 @@ def user_matchday_detail(username: str, matchday: int):
     # Admin sees all; regular users only see locked matches (after kickoff)
     visible = matches if is_admin else [m for m in matches if match_repo.is_locked(m)]
 
+    all_active_users = [u for u in user_repo.all() if u["active"]]
+    bonus_by_match = _compute_bonus_by_match(visible, all_active_users, tip_repo, result_repo)
+
     items = []
     total_pts = 0.0
     for m in visible:
         tip = tip_repo.get_user_tip(username, m["match_id"])
         result = result_repo.find(m["match_id"])
         pts = None
+        has_bonus = bonus_by_match.get(username, {}).get(m["match_id"], False)
         if tip and result and result["status"] == "final" and m.get("kickoff_at"):
             snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
             bd = calculate_score(
@@ -539,6 +560,8 @@ def user_matchday_detail(username: str, matchday: int):
             )
             pts = bd.final_pts
             total_pts += pts
+        if has_bonus:
+            total_pts += 1
         items.append({
             "home": m["home_team"],
             "away": m["away_team"],
@@ -550,6 +573,7 @@ def user_matchday_detail(username: str, matchday: int):
             "result_home": result["home_goals_actual"] if result and result["status"] == "final" else None,
             "result_away": result["away_goals_actual"] if result and result["status"] == "final" else None,
             "pts": pts,
+            "has_bonus": has_bonus,
         })
 
     html = current_app.jinja_env.from_string(_USER_MATCHDAY_DETAIL_TEMPLATE).render(

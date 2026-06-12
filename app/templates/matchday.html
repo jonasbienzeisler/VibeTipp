@@ -157,7 +157,7 @@
       RARITÄTSBONUS WIRD GELADEN...
     </div>
   </div>
-  {% elif result and result.status == 'final' and item.distrib %}
+  {% elif item.distrib %}
   <div class="rarity-panel rarity-frozen">
     {% set d = item.distrib %}
     <div class="rarity-title">
@@ -227,6 +227,7 @@
         {% set cell = user_match_scores.get(uname, {}).get(m.match_id) %}
         {% set utip = cell.tip if cell else none %}
         {% set bd = cell.bd if cell else none %}
+        {% set has_bonus = cell.has_bonus if cell else false %}
         <td class="wst-td">
           {% if utip %}
           <div style="line-height:1.4;">
@@ -235,19 +236,21 @@
             </div>
             {% if bd %}
             <div style="color:var(--cyan);font-size:0.45rem;">{{ bd.actual_home }}:{{ bd.actual_away }}</div>
+            {% if has_bonus %}<div style="color:var(--gold);font-size:0.4rem;">⭐+1</div>{% endif %}
             {% if session.role == 'admin' %}
             <div>
               <input type="number" step="0.1"
                      class="admin-score-input"
                      style="width:50px"
-                     value="{{ '%.1f'|format(bd.final_pts) }}"
+                     value="{{ '%.1f'|format(bd.final_pts + (1 if has_bonus else 0)) }}"
                      onchange="adminAdjustPts('{{ uname }}', '{{ m.match_id }}', this.value)">
             </div>
             {% else %}
-            {% if bd.final_pts > 0 %}
-            <div class="wst-pts" style="font-size:0.45rem;">+{{ '%.1f'|format(bd.final_pts) }}</div>
-            {% elif bd.final_pts < 0 %}
-            <div class="wst-pts-neg" style="font-size:0.45rem;">{{ '%.1f'|format(bd.final_pts) }}</div>
+            {% set cell_pts = bd.final_pts + (1 if has_bonus else 0) %}
+            {% if cell_pts > 0 %}
+            <div class="wst-pts" style="font-size:0.45rem;">+{{ '%.1f'|format(cell_pts) }}</div>
+            {% elif cell_pts < 0 %}
+            <div class="wst-pts-neg" style="font-size:0.45rem;">{{ '%.1f'|format(cell_pts) }}</div>
             {% else %}
             <div style="color:rgba(255,255,255,0.4);font-size:0.45rem;">0</div>
             {% endif %}
@@ -308,12 +311,11 @@
         <div class="info-row"><span class="info-pts info-pts-green">+3</span><span><strong>Richtige Tordifferenz</strong> – Sieger korrekt und Tordifferenz korrekt</span></div>
         <div class="info-row"><span class="info-pts info-pts-green">+4</span><span><strong>Exaktes Ergebnis</strong> – alle Tore exakt richtig getippt</span></div>
         <div class="info-sep"></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span><strong>Richtige Gesamttore</strong> – Gesamtzahl der Tore korrekt (zusätzlich)</span></div>
         <div class="info-sep"></div>
         <div class="info-row info-row-special"><span class="info-pts">×R</span><span>Raritätsfaktor: ×(2 − Anteil deiner Tendenz), max ×2.0</span></div>
         <div class="info-row info-row-special"><span class="info-pts">×2</span><span>Deutschland-Spiel: alle Punkte ×2</span></div>
         <div class="info-sep"></div>
-        <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Pro Spiel: richtiger Tendenz-Tipp + größte Tordifferenz im Tipp = Bonuspunkt</span></div>
+        <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Pro Spiel: richtige Tendenz + meiste Tore getippt (Heim + Auswärts) = Bonuspunkt</span></div>
         <div class="info-sep"></div>
         <div class="info-risk-header">
           <img src="{{ url_for('static', filename='risk_icon_small.png') }}" alt="" class="info-risk-icon">
@@ -367,8 +369,7 @@
         <div class="info-row"><span class="info-pts info-pts-green">+2</span><span>Richtige Tendenz</span></div>
         <div class="info-row"><span class="info-pts info-pts-green">+3</span><span>Richtige Tordifferenz</span></div>
         <div class="info-row"><span class="info-pts info-pts-green">+4</span><span>Exaktes Ergebnis</span></div>
-        <div class="info-row"><span class="info-pts info-pts-green">+1</span><span>Richtige Gesamttore (zusätzlich)</span></div>
-        <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Bonuspunkt: richtige Tendenz + größte Tordifferenz im Tipp</span></div>
+        <div class="info-row info-row-special"><span class="info-pts">⭐+1</span><span>Bonuspunkt: richtige Tendenz + meiste Tore getippt (Heim + Auswärts)</span></div>
         <div class="info-sep"></div>
         <div class="info-row info-row-risk info-row-neg"><span class="info-pts info-pts-red">−10</span><span>Hochrisiko falsch: 10 Punkte Abzug</span></div>
       </div>

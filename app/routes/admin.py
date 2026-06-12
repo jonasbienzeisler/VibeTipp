@@ -195,15 +195,15 @@ def set_match_score(match_id: str):
         return redirect(url_for("admin.index"))
 
     status = request.form.get("status", "scheduled")
-    home_goals_str = request.form.get("home_goals", "").strip()
-    away_goals_str = request.form.get("away_goals", "").strip()
-
     if status not in ("scheduled", "final"):
         flash("Ungültiger Status.", "error")
         return redirect(url_for("admin.index"))
 
+    home_goals_str = request.form.get("home_goals", "").strip()
+    away_goals_str = request.form.get("away_goals", "").strip()
     home_goals = None
     away_goals = None
+
     if status == "final":
         try:
             home_goals = int(home_goals_str)

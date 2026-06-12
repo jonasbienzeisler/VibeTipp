@@ -2,7 +2,7 @@ from pathlib import Path
 from app.repositories.base import read_csv, write_csv, ensure_csv_exists
 
 HEADERS = ["match_id", "home_goals_actual", "away_goals_actual", "status"]
-VALID_STATUSES = {"scheduled", "final", "cancelled"}
+VALID_STATUSES = {"scheduled", "locked", "final", "cancelled"}
 
 
 class ResultRepository:

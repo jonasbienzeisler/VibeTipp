@@ -20,6 +20,12 @@ def _result_is_final(match_id: str) -> bool:
     return r is not None and r["status"] == "final"
 
 
+def _result_is_closed(match_id: str) -> bool:
+    """True when tips must not be accepted: result is 'locked' or 'final'."""
+    r = current_app.result_repo.find(match_id)
+    return r is not None and r["status"] in ("locked", "final")
+
+
 def _validate_goals(value: str) -> tuple[int | None, str | None]:
     try:
         n = int(value)
@@ -48,10 +54,10 @@ def save_tip(match_id: str):
         flash("Spiel nicht gefunden.", "error")
         return redirect(url_for("main.dashboard"))
 
-    if match_repo.is_matchday_locked(match["matchday"]) or _result_is_final(match_id):
+    if match_repo.is_locked(match) or _result_is_closed(match_id):
         if is_ajax:
             return jsonify({"ok": False, "error": "Tippfrist abgelaufen"}), 403
-        flash("Tippfrist abgelaufen – dieses Spiel wurde bereits ausgewertet.", "error")
+        flash("Tippfrist abgelaufen – dieses Spiel ist gesperrt.", "error")
         return redirect(url_for("main.matchday", matchday=match["matchday"]))
 
     home_raw = request.form.get("home_goals", "")
@@ -79,11 +85,15 @@ def save_tip(match_id: str):
     if is_risk:
         old_risk = tip_repo.get_user_risk_pick_for_matchday(user, matchday, match_repo)
         if old_risk and old_risk != match_id:
-            old_tip = tip_repo.get_user_tip(user, old_risk)
             old_match = match_repo.find(old_risk)
-            if old_tip and old_match and not match_repo.is_matchday_locked(old_match["matchday"]):
-                tip_repo.save_tip(user, old_risk, old_tip["home_goals_tip"], old_tip["away_goals_tip"], False)
-                audit.risk_changed(user, old_risk, False)
+            old_locked = old_match and (match_repo.is_locked(old_match) or _result_is_closed(old_risk))
+            if old_locked:
+                is_risk = False  # silently downgrade to normal tip rather than corrupt state
+            else:
+                old_tip = tip_repo.get_user_tip(user, old_risk)
+                if old_tip and old_match:
+                    tip_repo.save_tip(user, old_risk, old_tip["home_goals_tip"], old_tip["away_goals_tip"], False)
+                    audit.risk_changed(user, old_risk, False)
 
     tip_repo.save_tip(user, match_id, home, away, is_risk)
     audit.tip_saved(user, match_id, home, away, is_risk)
@@ -112,7 +122,7 @@ def save_bulk_tips(matchday: int):
     saved = 0
     errors = []
     for m in matches:
-        if match_repo.is_locked(m) or _result_is_final(m["match_id"]):
+        if match_repo.is_locked(m) or _result_is_closed(m["match_id"]):
             continue
         home_raw = request.form.get(f"home_goals_{m['match_id']}", "")
         away_raw = request.form.get(f"away_goals_{m['match_id']}", "")
@@ -152,7 +162,7 @@ def toggle_risk(match_id: str):
     user = session["username"]
 
     match = match_repo.find(match_id)
-    if not match or match_repo.is_matchday_locked(match["matchday"]) or _result_is_final(match_id):
+    if not match or match_repo.is_locked(match) or _result_is_closed(match_id):
         flash("Hochrisikospiel kann nicht mehr geändert werden.", "error")
         return redirect(url_for("main.matchday", matchday=match["matchday"] if match else 1))
 
@@ -165,12 +175,16 @@ def toggle_risk(match_id: str):
     currently_risk = tip["is_risk_pick"]
 
     if not currently_risk:
-        # Activating risk: unset existing risk pick for matchday
+        # Activating risk: check for existing risk pick on this matchday
         old_risk = tip_repo.get_user_risk_pick_for_matchday(user, matchday, match_repo)
         if old_risk and old_risk != match_id:
-            old_tip = tip_repo.get_user_tip(user, old_risk)
             old_match = match_repo.find(old_risk)
-            if old_tip and old_match and not match_repo.is_matchday_locked(old_match["matchday"]):
+            old_locked = old_match and (match_repo.is_locked(old_match) or _result_is_closed(old_risk))
+            if old_locked:
+                flash("Hochrisikospiel bereits gesetzt und gesperrt – kann nicht mehr gewechselt werden.", "error")
+                return redirect(url_for("main.matchday", matchday=matchday))
+            old_tip = tip_repo.get_user_tip(user, old_risk)
+            if old_tip and old_match:
                 tip_repo.save_tip(user, old_risk, old_tip["home_goals_tip"], old_tip["away_goals_tip"], False)
                 audit.risk_changed(user, old_risk, False)
 

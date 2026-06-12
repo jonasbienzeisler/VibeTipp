@@ -18,6 +18,9 @@
   </form>
 </div>
 
+<!-- Team names form — inputs throughout the page associate via form="team-names-form" -->
+<form id="team-names-form" method="post" action="{{ url_for('admin.save_all_team_names') }}"></form>
+
 <div class="admin-grid">
 
   <!-- Upload -->
@@ -33,9 +36,6 @@
     </form>
   </div>
 
-  <!-- Team names form — inputs throughout the page associate via form="team-names-form" -->
-  <form id="team-names-form" method="post" action="{{ url_for('admin.save_all_team_names') }}"></form>
-
   <!-- Current matches -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
@@ -47,8 +47,26 @@
       <div class="admin-matchday-header">SPIELTAG {{ md }}</div>
       {% for m in match_repo.by_matchday(md) %}
       {% set r = results.get(m.match_id) %}
+      {% if r and r.status == 'final' %}
+        {% set game_status = 'final' %}
+      {% elif r and r.status == 'locked' %}
+        {% set game_status = 'admin-locked' %}
+      {% elif match_repo.is_locked(m) %}
+        {% set game_status = 'auto-locked' %}
+      {% else %}
+        {% set game_status = 'open' %}
+      {% endif %}
       <div class="admin-match-row" style="flex-wrap:wrap;">
         <span class="admin-match-id">{{ m.match_id }}</span>
+        {% if game_status == 'final' %}
+        <span class="badge badge-status-evaluated" style="font-size:0.42rem;padding:0.1rem 0.3rem;">FINAL</span>
+        {% elif game_status == 'admin-locked' %}
+        <span class="badge" style="font-size:0.42rem;padding:0.1rem 0.3rem;background:var(--amber,#f59e0b);color:#000;">GESPERRT*</span>
+        {% elif game_status == 'auto-locked' %}
+        <span class="badge" style="font-size:0.42rem;padding:0.1rem 0.3rem;background:rgba(245,158,11,0.25);color:var(--amber,#f59e0b);">GESPERRT</span>
+        {% else %}
+        <span class="badge" style="font-size:0.42rem;padding:0.1rem 0.3rem;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);">OFFEN</span>
+        {% endif %}
         <span class="admin-teams" style="display:flex;align-items:center;gap:0.25rem;flex:1">
           <input type="text" name="home_{{ m.match_id }}" value="{{ m.home_team }}"
                  form="team-names-form" class="admin-team-input"
@@ -60,7 +78,7 @@
         </span>
         {% if r and r.status == 'final' %}
         <span class="admin-result badge-status-evaluated">{{ r.home_goals_actual }}:{{ r.away_goals_actual }} ✓</span>
-        {% elif r %}
+        {% elif r and r.status not in ('scheduled',) %}
         <span class="admin-result">{{ r.status }}</span>
         {% else %}
         <span class="admin-result result-none">—</span>
@@ -73,7 +91,7 @@
                  value="{{ r.away_goals_actual if r and r.away_goals_actual is not none else '' }}">
           <select name="status" class="admin-score-select">
             <option value="scheduled" {% if not r or r.status == 'scheduled' %}selected{% endif %}>scheduled</option>
-            <option value="final" {% if r and r.status == 'final' %}selected{% endif %}>final</option>
+            <option value="final"     {% if r and r.status == 'final'     %}selected{% endif %}>final</option>
           </select>
           <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.5rem;padding:0.1rem 0.4rem;">[SET]</button>
         </form>

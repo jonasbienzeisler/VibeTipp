@@ -100,9 +100,6 @@ def calculate_score(
         bd.base_category = "none"
         bd.base_category_pts = 0
 
-    # --- Total goals bonus (always checked, regardless of tendency) ---
-    bd.total_goals_pts = 1 if actual_total == tip_total else 0
-
     # --- Rarity factor (only when tendency is correct) ---
     bd.rarity_factor = 1.0
     if bd.tendency_correct and rarity_snapshot and rarity_snapshot.get("total_tips", 0) > 0:
@@ -115,7 +112,7 @@ def calculate_score(
         bd.rarity_factor = round(2.0 - share, 2)
 
     # --- Pre-rarity and base points ---
-    bd.pre_rarity_pts = float(bd.base_category_pts + bd.total_goals_pts)
+    bd.pre_rarity_pts = float(bd.base_category_pts)
     bd.base_pts = round(bd.pre_rarity_pts * bd.rarity_factor, 1)
 
     # --- Germany multiplier ---

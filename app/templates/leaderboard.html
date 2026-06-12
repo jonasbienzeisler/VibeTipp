@@ -22,7 +22,7 @@
     <span class="lb-col lb-tend">TEND.</span>
     <span class="lb-col lb-exact">EXAKT</span>
     <span class="lb-col lb-risk">RISK ✓</span>
-    <span class="lb-col lb-bonus" title="Tendenz + Torunterschied Bonus">★</span>
+    <span class="lb-col lb-bonus" title="Meiste Tore getippt Bonus">★</span>
   </div>
 
   {% for entry in entries %}
@@ -46,7 +46,7 @@
     <span class="lb-col lb-tend">{{ entry.tendency_count }}</span>
     <span class="lb-col lb-exact">{{ entry.exact_count }}</span>
     <span class="lb-col lb-risk">{{ entry.risk_ok }}{% if entry.risk_fail > 0 %}/{{ entry.risk_fail }}{% endif %}</span>
-    <span class="lb-col lb-bonus">{% if entry.tendency_bonus %}⭐{% else %}–{% endif %}</span>
+    <span class="lb-col lb-bonus">{% if entry.has_bonus %}⭐{% else %}–{% endif %}</span>
   </div>
   {% else %}
   <div class="leaderboard-row lb-empty">NOCH KEINE ERGEBNISSE</div>
@@ -60,7 +60,7 @@
   <span class="sep">::</span>
   <span>RISK ✓ = Erfolgreiche / Fehlgeschlagene Hochrisikospiele</span>
   <span class="sep">::</span>
-  <span>★ = Beste Tendenz + Größte Tordifferenz (+1 Bonus)</span>
+  <span>★ = Meiste Tore getippt pro Spiel (+1 Bonus)</span>
   <span class="sep">::</span>
   <span style="color:rgba(255,255,255,0.6)">NAME anklicken → Ergebnisdetails</span>
 </div>
@@ -91,6 +91,7 @@
         {% set cell = sec.user_match_scores.get(uname, {}).get(m.match_id) %}
         {% set utip = cell.tip if cell else none %}
         {% set bd = cell.bd if cell else none %}
+        {% set has_bonus = cell.has_bonus if cell else false %}
         <td class="wst-td">
           {% if utip %}
           <div style="line-height:1.4;">
@@ -99,10 +100,12 @@
             </div>
             {% if bd %}
             <div style="color:var(--cyan);font-size:0.45rem;">{{ bd.actual_home }}:{{ bd.actual_away }}</div>
-            {% if bd.final_pts > 0 %}
-            <div class="wst-pts" style="font-size:0.45rem;">+{{ '%.1f'|format(bd.final_pts) }}</div>
-            {% elif bd.final_pts < 0 %}
-            <div class="wst-pts-neg" style="font-size:0.45rem;">{{ '%.1f'|format(bd.final_pts) }}</div>
+            {% if has_bonus %}<div style="color:var(--gold);font-size:0.4rem;">⭐+1</div>{% endif %}
+            {% set cell_pts = bd.final_pts + (1 if has_bonus else 0) %}
+            {% if cell_pts > 0 %}
+            <div class="wst-pts" style="font-size:0.45rem;">+{{ '%.1f'|format(cell_pts) }}</div>
+            {% elif cell_pts < 0 %}
+            <div class="wst-pts-neg" style="font-size:0.45rem;">{{ '%.1f'|format(cell_pts) }}</div>
             {% else %}
             <div style="color:rgba(255,255,255,0.4);font-size:0.45rem;">0</div>
             {% endif %}

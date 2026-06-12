@@ -214,7 +214,7 @@ body {
   padding-bottom: 0.4rem;
   text-shadow: 1px 1px 0 #000;
 }
-.card-desc { color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.75rem; line-height: 1.8; }
+.card-desc { color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.75rem; line-height: 1.8; overflow-wrap: break-word; word-break: break-all; }
 
 /* ── PAGE HEADER ── */
 .page-header {
@@ -568,7 +568,7 @@ body {
 .row-info td { color: rgba(255,255,255,0.4); }
 
 /* ── ADMIN ── */
-.admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.admin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; align-items: start; }
 .admin-matchday-header { color: var(--gold); font-size: 0.55rem; letter-spacing: 2px; padding: 0.3rem 0; margin-top: 0.5rem; }
 .admin-match-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; border-bottom: 1px solid rgba(255,215,0,0.1); font-size: 0.6rem; }
 .admin-match-id { color: rgba(255,255,255,0.4); font-size: 0.5rem; width: 50px; flex-shrink: 0; }
@@ -1486,6 +1486,80 @@ img.emoji {
   50%       { opacity: 0.2; }
 }
 .wc-blink { animation: wc-blink 0.9s step-end infinite; }
+
+/* ── WM-SIEGER FROZEN PICKS (character select reveal) ── */
+.wc-frozen-section {
+  position: relative;
+  margin: 1.5rem 0;
+  border: 3px solid var(--gold);
+  background: #000208;
+  padding: 1rem 1rem 1.2rem;
+  box-shadow: 0 0 30px rgba(255,215,0,0.2), inset 0 0 40px rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+.wc-frozen-scanlines {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 4px);
+}
+.wc-frozen-header {
+  position: relative; z-index: 1;
+  font-family: var(--font); font-size: 0.7rem; color: var(--gold);
+  letter-spacing: 3px; text-align: center; margin-bottom: 0.3rem;
+}
+.wc-frozen-sub {
+  font-size: 0.42rem; color: rgba(255,215,0,0.55); letter-spacing: 2px;
+  margin-top: 0.25rem;
+}
+.wc-frozen-grid {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+.wc-frozen-card {
+  background: rgba(0,4,20,0.95);
+  border: 2px solid rgba(255,215,0,0.3);
+  padding: 0.5rem 0.3rem 0.4rem;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  font-family: var(--font);
+  position: relative;
+  transition: box-shadow 0.2s;
+}
+.wc-frozen-card-picked {
+  border-color: rgba(255,215,0,0.6);
+}
+.wc-frozen-card-empty {
+  opacity: 0.45;
+  border-style: dashed;
+}
+.wc-frozen-card-me {
+  border-color: var(--cyan, #00e5ff);
+  box-shadow: 0 0 12px rgba(0,229,255,0.35), inset 0 0 8px rgba(0,229,255,0.07);
+}
+.wc-frozen-player-num {
+  font-size: 0.38rem; color: rgba(255,215,0,0.5); letter-spacing: 1px;
+  align-self: flex-start; padding-left: 0.1rem;
+}
+.wc-frozen-flag { font-size: 2rem; line-height: 1.1; }
+.wc-frozen-flag-empty { font-size: 1.4rem; color: rgba(255,255,255,0.2); }
+.wc-frozen-team {
+  font-size: 0.36rem; color: var(--gold); letter-spacing: 1px;
+  word-break: break-word; line-height: 1.4;
+}
+.wc-frozen-team-empty { color: rgba(255,255,255,0.25); }
+.wc-frozen-divider {
+  width: 70%; height: 1px; background: rgba(255,215,0,0.2); margin: 0.2rem 0;
+}
+.wc-frozen-name {
+  font-size: 0.38rem; color: rgba(255,255,255,0.75); letter-spacing: 1px;
+  word-break: break-word; line-height: 1.4;
+}
+.wc-frozen-you {
+  font-size: 0.35rem; color: var(--cyan, #00e5ff); letter-spacing: 1px;
+  animation: wc-blink 1.2s step-end infinite;
+}
 
 /* Dashboard WC card */
 .wc-current-pick {

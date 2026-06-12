@@ -176,6 +176,38 @@
 
 </div>
 
+{% if wc_locked and wc_picks_display %}
+<!-- WM-Sieger Frozen Picks — Character Select Style -->
+<div class="wc-frozen-section">
+  <div class="wc-frozen-scanlines"></div>
+  <div class="wc-frozen-header">
+    <span class="wc-blink">▶▶</span>
+    &nbsp;🏆 WM-SIEGER TIPPS&nbsp;
+    <span class="wc-blink">◀◀</span>
+    <div class="wc-frozen-sub">EINGEFROREN — KEIN ÄNDERN MEHR MÖGLICH 🔒</div>
+  </div>
+  <div class="wc-frozen-grid">
+    {% for p in wc_picks_display %}
+    <div class="wc-frozen-card {% if p.team %}wc-frozen-card-picked{% else %}wc-frozen-card-empty{% endif %} {% if p.username == session.username %}wc-frozen-card-me{% endif %}">
+      <div class="wc-frozen-player-num">P{{ loop.index }}</div>
+      {% if p.team %}
+      <div class="wc-frozen-flag">{{ p.flag }}</div>
+      <div class="wc-frozen-team">{{ p.team | upper }}</div>
+      {% else %}
+      <div class="wc-frozen-flag wc-frozen-flag-empty">?</div>
+      <div class="wc-frozen-team wc-frozen-team-empty">KEIN TIPP</div>
+      {% endif %}
+      <div class="wc-frozen-divider"></div>
+      <div class="wc-frozen-name">{{ p.display_name | upper }}</div>
+      {% if p.username == session.username %}
+      <div class="wc-frozen-you">◀ DU</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- SAV Modal -->
 <div id="modal-sav" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-sav')">
   <div class="sav-modal-box">
@@ -222,7 +254,6 @@
         <div class="sav-def"><span class="sav-term">Tendenz:</span> Die grundsätzliche Spielrichtung: Heimsieg, Unentschieden oder Auswärtssieg.</div>
         <div class="sav-def"><span class="sav-term">Exaktes Ergebnis:</span> Der Tipp stimmt vollständig mit dem tatsächlichen Endergebnis überein.</div>
         <div class="sav-def"><span class="sav-term">Tordifferenz:</span> Die Differenz zwischen Heimtoren und Auswärtstoren. Beispiel: 2:1 und 1:0 haben beide eine Tordifferenz von +1.</div>
-        <div class="sav-def"><span class="sav-term">Gesamttore:</span> Die Summe aller im Spiel erzielten Tore. Beispiel: Bei 2:1 beträgt die Gesamtzahl der Tore 3.</div>
         <div class="sav-def"><span class="sav-term">Raritätsfaktor:</span> Ein Multiplikator, der seltenere richtige Tendenzen stärker gewichtet. Formel: 2 − Anteil der gewählten Tendenz, max ×2,0.</div>
         <div class="sav-def"><span class="sav-term">Deutschland-Spiel:</span> Ein Spiel mit Beteiligung der deutschen Nationalmannschaft. Punkte werden verdoppelt.</div>
         <div class="sav-def"><span class="sav-term">Hochrisikospiel:</span> Ein pro Spieltag auswählbares Spiel. Richtige Tendenz → Punkte ×2. Falsche Tendenz → −10 Punkte.</div>
@@ -246,19 +277,17 @@
           <div class="sav-pts-row"><span class="sav-pts sav-pts-green">+2</span><span>Richtige Tendenz</span></div>
           <div class="sav-pts-row"><span class="sav-pts">0</span><span>Falsche Tendenz</span></div>
         </div>
-        <div class="sav-h2">Task 4: Zusatzpunkt für richtige Gesamttore</div>
-        <p>Bei exakt richtiger Gesamtzahl der Tore wird zusätzlich 1 Punkt vergeben — unabhängig davon, ob die Tendenz richtig war.</p>
-        <div class="sav-h2">Task 5: Raritätsfaktor</div>
+        <div class="sav-h2">Task 4: Raritätsfaktor</div>
         <p>Formel: Raritätsfaktor = 2 − Anteil der gewählten Tendenz. Nur bei richtiger Tendenz. Maximum ×2,0.</p>
-        <div class="sav-h2">Task 6: Deutschland-Multiplikator</div>
+        <div class="sav-h2">Task 5: Deutschland-Multiplikator</div>
         <p>Bei Deutschland-Spielen werden alle Punkte des Spiels mit Faktor 2 multipliziert.</p>
-        <div class="sav-h2">Task 7: Hochrisikospiel auswählen</div>
+        <div class="sav-h2">Task 6: Hochrisikospiel auswählen</div>
         <p>Genau ein Spiel pro Spieltag kann als Hochrisikospiel markiert werden. Voraussetzung: Tipp gespeichert, Spiel noch nicht gestartet.</p>
-        <div class="sav-h2">Task 8: Hochrisikospiel auswerten</div>
+        <div class="sav-h2">Task 7: Hochrisikospiel auswerten</div>
         <p>Richtige Tendenz → Punkte ×2. Falsche Tendenz → −10 Punkte. Unentschieden ist eine normale Tendenz: Wer Unentschieden tippt und das Spiel endet unentschieden, ist die Tendenz richtig.</p>
-        <div class="sav-h2">Task 9: Bonuspunkt</div>
-        <p>Spielerinnen und Spieler mit richtiger Tendenz und größter Tordifferenz im Tipp erhalten pro Spiel einen Bonuspunkt.</p>
-        <div class="sav-h2">Task 10: Highscore</div>
+        <div class="sav-h2">Task 8: Bonuspunkt</div>
+        <p>Pro Spiel erhalten Spielerinnen und Spieler mit richtiger Tendenz, die gleichzeitig die höchste Gesamtanzahl Tore getippt haben (Heim + Auswärts), einen Bonuspunkt. Bei Gleichstand erhalten alle entsprechenden Spieler den Bonuspunkt.</p>
+        <div class="sav-h2">Task 9: Highscore</div>
         <p>Das System summiert alle Punkte und aktualisiert die Rangliste nach jeder Auswertung.</p>
       </div>
       <div class="sav-section">
@@ -271,11 +300,11 @@
       </div>
       <div class="sav-section">
         <div class="sav-h1">9. Beispiele zur Punktevergabe</div>
-        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 2:1</strong> → Exaktes Ergebnis +4, Richtige Gesamttore +1 = <strong>5 Punkte</strong></div>
-        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 1:0</strong> → Richtige Tordifferenz +3, Gesamttore 1≠3 = <strong>3 Punkte</strong></div>
-        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 3:0</strong> → Richtige Tendenz +2, Richtige Gesamttore +1 = <strong>3 Punkte</strong></div>
-        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 1:2</strong> → Falsche Tendenz 0, Richtige Gesamttore +1 = <strong>1 Punkt</strong></div>
-        <div class="sav-example"><strong>Ergebnis 1:1, Tipp 2:2</strong> → Richtige Tendenz +2, Gesamttore 4≠2 = <strong>2 Punkte</strong></div>
+        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 2:1</strong> → Exaktes Ergebnis +4 = <strong>4 Punkte</strong></div>
+        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 1:0</strong> → Richtige Tordifferenz +3 = <strong>3 Punkte</strong></div>
+        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 3:0</strong> → Richtige Tendenz +2 = <strong>2 Punkte</strong></div>
+        <div class="sav-example"><strong>Ergebnis 2:1, Tipp 1:2</strong> → Falsche Tendenz = <strong>0 Punkte</strong></div>
+        <div class="sav-example"><strong>Ergebnis 1:1, Tipp 2:2</strong> → Richtige Tendenz +2 = <strong>2 Punkte</strong></div>
         <div class="sav-example"><strong>Ergebnis 1:1, Tipp 2:1, Hochrisikospiel</strong> → Falsche Tendenz, Hochrisiko = <strong>−10 Punkte</strong></div>
       </div>
       <div class="sav-section">
