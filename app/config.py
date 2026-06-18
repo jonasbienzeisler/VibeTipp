@@ -16,5 +16,7 @@ LOGIN_MAX_ATTEMPTS = int(os.environ.get("LOGIN_MAX_ATTEMPTS", "10"))
 LOGIN_LOCKOUT_MINUTES = int(os.environ.get("LOGIN_LOCKOUT_MINUTES", "15"))
 PAYMENT_LINK = os.environ.get("PAYMENT_LINK", "https://paypal.me/")
 
+APP_VERSION = "v1.1"
+
 SAV_DOC_ID = "VT-SAV-01"
 SAV_DOC_VERSION = "v1.0"

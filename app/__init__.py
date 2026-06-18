@@ -71,10 +71,12 @@ def create_app(data_dir=None, secret_key=None) -> Flask:
             visible = matchdays[start:end]
         else:
             visible = []
+        from app import config as _cfg
         return {
             "matchdays": matchdays,
             "current_matchday_num": current,
             "nav_visible_matchdays": visible,
+            "app_version": _cfg.APP_VERSION,
         }
 
     @app.template_filter("matchday_label")

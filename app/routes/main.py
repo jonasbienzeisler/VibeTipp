@@ -213,7 +213,7 @@ def dashboard():
 
     md1_kickoffs = [m["kickoff_at"] for m in match_repo.by_matchday(1) if m["kickoff_at"]]
     wc_deadline = max(md1_kickoffs) if md1_kickoffs else None
-    wc_locked = bool(wc_deadline and datetime.now(timezone.utc) >= wc_deadline)
+    wc_locked = current_app.wc_pick_repo.is_pick_locked()
     wc_pick = current_app.wc_pick_repo.get_pick(user)
 
     wc_picks_display = []
@@ -269,9 +269,8 @@ def confirm_training():
 @login_required
 def save_world_cup_pick():
     user = session["username"]
-    md1_kickoffs = [m["kickoff_at"] for m in current_app.match_repo.by_matchday(1) if m["kickoff_at"]]
-    if md1_kickoffs and datetime.now(timezone.utc) >= max(md1_kickoffs):
-        flash("Das letzte Spiel von Spieltag 1 hat begonnen – WM-Sieger-Tipp ist gesperrt.", "error")
+    if current_app.wc_pick_repo.is_pick_locked():
+        flash("WM-Sieger-Tipp ist gesperrt.", "error")
         return redirect(url_for("main.dashboard"))
     team = request.form.get("team", "").strip()
     if team not in _WC_TEAM_FLAGS:

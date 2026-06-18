@@ -39,6 +39,7 @@ def index():
     team_resolution_preview = get_resolution_preview(match_repo, result_repo)
     wc_picks_all = current_app.wc_pick_repo.all()
     wc_team_flags = _WC_TEAM_FLAGS
+    wc_pick_locked = current_app.wc_pick_repo.is_pick_locked()
     return render_template("admin/index.html",
         matchdays=matchdays,
         match_repo=match_repo,
@@ -47,7 +48,18 @@ def index():
         team_resolution_preview=team_resolution_preview,
         wc_picks_all=wc_picks_all,
         wc_team_flags=wc_team_flags,
+        wc_pick_locked=wc_pick_locked,
     )
+
+
+@bp.post("/wc-pick-lock")
+@admin_required
+def wc_pick_lock():
+    action = request.form.get("action")
+    lock = action == "lock"
+    current_app.wc_pick_repo.set_pick_locked(lock)
+    flash("WM-Sieger-Tipp gesperrt." if lock else "WM-Sieger-Tipp entsperrt.", "success")
+    return redirect(url_for("admin.index"))
 
 
 @bp.post("/upload")

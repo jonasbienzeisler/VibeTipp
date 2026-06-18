@@ -112,6 +112,14 @@
         🏆 {% if wc_pick %}ÄNDERN{% else %}WM-SIEGER WÄHLEN{% endif %}
       </button>
       {% endif %}
+      {% if session.role == 'admin' %}
+      <form method="post" action="/admin/wc-pick-lock" style="margin-top:0.4rem">
+        <input type="hidden" name="action" value="{{ 'unlock' if wc_locked else 'lock' }}">
+        <button type="submit" class="btn btn-full btn-sm" style="font-size:0.45rem;opacity:0.7;{% if wc_locked %}background:rgba(0,200,0,0.1);border-color:#0f0;color:#0f0{% else %}background:rgba(255,0,0,0.1);border-color:var(--red);color:var(--red){% endif %}">
+          {% if wc_locked %}🔓 ENTSPERREN{% else %}🔒 SPERREN{% endif %}
+        </button>
+      </form>
+      {% endif %}
       <div class="wc-pts-info">
         <span class="wc-pts-row"><span class="wc-pts wc-pts-gold">+40</span> Weltmeister</span>
         <span class="wc-pts-row"><span class="wc-pts wc-pts-silver">+25</span> Vizemeister</span>
@@ -218,7 +226,7 @@
       <div class="sav-modal-meta">
         <span>Dokumententyp: SAV</span><span class="sep">::</span>
         <span>QM-ID: VT-SAV-01</span><span class="sep">::</span>
-        <span>Version: v1.0</span><span class="sep">::</span>
+        <span>Version: {{ app_version }}</span><span class="sep">::</span>
         <span class="sav-status-badge">STATUS: GÜLTIG</span>
       </div>
     </div>
@@ -318,7 +326,7 @@
       </div>
       <div class="sav-section">
         <div class="sav-h1">12. Dokumentenhistorie</div>
-        <p>Version v1.0: Initiale Fassung der SAV zur risikoadjustierten Prädiktionspunktvergabe im VibeTipp WM 2026.</p>
+        <p>Version {{ app_version }}: Initiale Fassung der SAV zur risikoadjustierten Prädiktionspunktvergabe im VibeTipp WM 2026.</p>
       </div>
 
       <div class="sav-confirm-area" id="sav-confirm-area">

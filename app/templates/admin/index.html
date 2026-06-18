@@ -239,6 +239,26 @@ M003;;; scheduled</pre>
         </form>
       </div>
     </div>
+  <!-- WM-Sieger Tipp sperren/entsperren -->
+  <div class="card">
+    <div class="card-title">🔐 WM-SIEGER TIPP – SPERRE</div>
+    <p class="card-desc">Wenn gesperrt, können Nutzer keinen WM-Sieger-Tipp mehr abgeben oder ändern.</p>
+    <div style="margin-bottom:0.75rem;font-size:0.55rem;">
+      Status: {% if wc_pick_locked %}<span style="color:var(--red);font-weight:700">🔒 GESPERRT</span>{% else %}<span style="color:#0f0;font-weight:700">🔓 OFFEN</span>{% endif %}
+    </div>
+    {% if wc_pick_locked %}
+    <form method="post" action="{{ url_for('admin.wc_pick_lock') }}">
+      <input type="hidden" name="action" value="unlock">
+      <button type="submit" class="btn btn-primary" style="background:rgba(0,200,0,0.15);border-color:#0f0;color:#0f0">&gt; 🔓 ENTSPERREN</button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('admin.wc_pick_lock') }}">
+      <input type="hidden" name="action" value="lock">
+      <button type="submit" class="btn btn-primary" style="background:rgba(255,0,0,0.15);border-color:var(--red);color:var(--red)">&gt; 🔒 SPERREN</button>
+    </form>
+    {% endif %}
+  </div>
+
   <!-- WM-Sieger Punkte vergeben -->
   <div class="card">
     <div class="card-title">🏆 WM-SIEGER PUNKTE VERGEBEN</div>
