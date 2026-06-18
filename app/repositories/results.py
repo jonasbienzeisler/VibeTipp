@@ -24,6 +24,10 @@ class ResultRepository:
     def all(self) -> list[dict]:
         return [r for r in (self._parse(row) for row in read_csv(self._path)) if r]
 
+    def all_by_id(self) -> dict[str, dict]:
+        """Read results.csv once; return {match_id: result}. Use for bulk lookups."""
+        return {r["match_id"]: r for r in self.all()}
+
     def find(self, match_id: str) -> dict | None:
         for r in self.all():
             if r["match_id"] == match_id:

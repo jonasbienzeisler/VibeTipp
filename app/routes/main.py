@@ -16,12 +16,17 @@ def login_required(f):
     return decorated
 
 
-def _compute_bonus_by_match(matches, users, tip_repo, result_repo):
+def _compute_bonus_by_match(matches, users, tip_repo, result_repo, tips_dict=None, results_by_id=None):
     """Award +1 per game to player(s) with correct tendency AND highest tip total goals.
-    Returns {uname: {match_id: True}} for all bonus recipients."""
+    Returns {uname: {match_id: True}} for all bonus recipients.
+    Pass pre-loaded tips_dict and results_by_id to avoid redundant CSV reads."""
+    if tips_dict is None:
+        tips_dict = tip_repo.load_effective_dict()
+    if results_by_id is None:
+        results_by_id = result_repo.all_by_id()
     bonus: dict[str, dict[str, bool]] = {}
     for match in matches:
-        result = result_repo.find(match["match_id"])
+        result = results_by_id.get(match["match_id"])
         if not result or result["status"] != "final":
             continue
         mid = match["match_id"]
@@ -29,11 +34,11 @@ def _compute_bonus_by_match(matches, users, tip_repo, result_repo):
         candidates = []
         for user in users:
             uname = user["username"]
-            tip = tip_repo.get_user_tip(uname, mid)
+            tip = tips_dict.get((uname, mid))
             if not tip:
                 continue
             if get_tendency(tip["home_goals_tip"], tip["away_goals_tip"]) != actual_tendency:
-                continue  # only players with correct tendency qualify
+                continue
             total = tip["home_goals_tip"] + tip["away_goals_tip"]
             candidates.append((uname, total))
         if not candidates:
@@ -54,25 +59,31 @@ def _build_leaderboard_data(username_filter=None, matchday_filter=None):
     user_repo = current_app.user_repo
 
     users = [u for u in user_repo.all() if u["active"]]
-
     matches = match_repo.all() if not matchday_filter else match_repo.by_matchday(matchday_filter)
-    results_by_id = {r["match_id"]: r for r in result_repo.all()}
+
+    # Load all CSVs once per call — eliminates O(users × matches) file reads
+    results_by_id = result_repo.all_by_id()
+    tips_dict = tip_repo.load_effective_dict()
+    snapshots_by_id = snapshot_repo.load_all()
+
     finished_matches = [
         m for m in matches
         if match_repo.is_locked(m) or results_by_id.get(m["match_id"], {}).get("status") == "final"
     ]
 
-    # Pre-compute all score breakdowns to avoid double-fetching
     # score_cache[(username, match_id)] = (bd, tip)
     score_cache = {}
     for match in finished_matches:
-        result = result_repo.find(match["match_id"])
+        result = results_by_id.get(match["match_id"])
         if not result or result["status"] != "final":
             continue
-        snap = snapshot_repo.get_or_create(match["match_id"], match["kickoff_at"], tip_repo)
+        snap = snapshots_by_id.get(match["match_id"])
+        if snap is None:
+            snap = snapshot_repo.get_or_create(match["match_id"], match["kickoff_at"], tip_repo)
+            snapshots_by_id[match["match_id"]] = snap
         for user in users:
             uname = user["username"]
-            tip = tip_repo.get_user_tip(uname, match["match_id"])
+            tip = tips_dict.get((uname, match["match_id"]))
             if not tip:
                 continue
             bd = calculate_score(
@@ -82,10 +93,8 @@ def _build_leaderboard_data(username_filter=None, matchday_filter=None):
             )
             score_cache[(uname, match["match_id"])] = (bd, tip)
 
-    # Per-game bonus: +1 to player(s) with highest tip total goals (home+away) per game
-    bonus_by_match = _compute_bonus_by_match(finished_matches, users, tip_repo, result_repo)
+    bonus_by_match = _compute_bonus_by_match(finished_matches, users, tip_repo, result_repo, tips_dict, results_by_id)
 
-    # Build entries
     entries = []
     for user in users:
         uname = user["username"]
@@ -144,13 +153,14 @@ def dashboard():
     upcoming = []
     missing_count = 0
 
+    tips_dict = tip_repo.load_effective_dict()
+
     for md in matchdays:
         if match_repo.is_matchday_locked(md):
             continue
         matches = match_repo.by_matchday(md)
         for m in matches:
-            tip = tip_repo.get_user_tip(user, m["match_id"])
-            if not tip:
+            if not tips_dict.get((user, m["match_id"])):
                 missing_count += 1
         if not upcoming:
             upcoming = matches
@@ -192,8 +202,7 @@ def dashboard():
             if m["kickoff_at"]:
                 diff = m["kickoff_at"] - now
                 if timedelta(0) < diff <= timedelta(hours=6):
-                    tip = tip_repo.get_user_tip(user, m["match_id"])
-                    soon_matches.append({"match": m, "has_tip": tip is not None})
+                    soon_matches.append({"match": m, "has_tip": (user, m["match_id"]) in tips_dict})
 
     user_data = current_app.user_repo.find_by_username(user) or {}
     sav_confirmed = (
@@ -288,25 +297,37 @@ def matchday(matchday: int):
     if not matches:
         return redirect(url_for("main.dashboard"))
 
+    # Load all CSVs once — eliminates O(users × matches) file reads
+    results_by_id = result_repo.all_by_id()
+    tips_dict = tip_repo.load_effective_dict()
+    snapshots_by_id = snapshot_repo.load_all()
+
     risk_match_id = tip_repo.get_user_risk_pick_for_matchday(user, matchday, match_repo)
 
     items = []
     for m in matches:
         locked = match_repo.is_locked(m)
-        tip = tip_repo.get_user_tip(user, m["match_id"])
-        result = result_repo.find(m["match_id"])
+        tip = tips_dict.get((user, m["match_id"]))
+        result = results_by_id.get(m["match_id"])
 
         # Rarity distribution
         result_closed = result and result["status"] in ("locked", "final")
         if (locked or result_closed) and m["kickoff_at"]:
-            distrib = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+            snap = snapshots_by_id.get(m["match_id"])
+            if snap is None:
+                snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+                snapshots_by_id[m["match_id"]] = snap
+            distrib = snap
         else:
             distrib = snapshot_repo.compute_live(m["match_id"], tip_repo)
 
         # Score breakdown (if result available)
         score_bd = None
         if result and result["status"] == "final" and tip:
-            snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+            snap = snapshots_by_id.get(m["match_id"])
+            if snap is None:
+                snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+                snapshots_by_id[m["match_id"]] = snap
             score_bd = calculate_score(
                 result["home_goals_actual"], result["away_goals_actual"],
                 tip["home_goals_tip"], tip["away_goals_tip"],
@@ -346,23 +367,25 @@ def matchday(matchday: int):
         })
 
     # Per-user per-game scores table (all started/finished matches)
-    # Tips are revealed once a game is locked (kickoff past or admin-locked); scores only after final.
     def _is_active(m):
-        r = result_repo.find(m["match_id"])
+        r = results_by_id.get(m["match_id"])
         return match_repo.is_locked(m) or (r is not None and r["status"] in ("locked", "final"))
     active_matches = [m for m in matches if _is_active(m)]
     users = [u for u in user_repo.all() if u["active"]]
-    bonus_by_match = _compute_bonus_by_match(active_matches, users, tip_repo, result_repo)
+    bonus_by_match = _compute_bonus_by_match(active_matches, users, tip_repo, result_repo, tips_dict, results_by_id)
     user_match_scores = {}
     for u in users:
         uname = u["username"]
         user_match_scores[uname] = {}
         for m in active_matches:
-            utip = tip_repo.get_user_tip(uname, m["match_id"])
-            result = result_repo.find(m["match_id"])
+            utip = tips_dict.get((uname, m["match_id"]))
+            result = results_by_id.get(m["match_id"])
             bd = None
             if result and result["status"] == "final" and utip:
-                snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+                snap = snapshots_by_id.get(m["match_id"])
+                if snap is None:
+                    snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+                    snapshots_by_id[m["match_id"]] = snap
                 bd = calculate_score(
                     result["home_goals_actual"], result["away_goals_actual"],
                     utip["home_goals_tip"], utip["away_goals_tip"],
@@ -374,7 +397,6 @@ def matchday(matchday: int):
                 "has_bonus": bonus_by_match.get(uname, {}).get(m["match_id"], False),
             }
 
-    # Build entries list (display_name + total pts for this matchday) for the table header
     md_entries = _build_leaderboard_data(matchday_filter=matchday)
 
     matchdays = match_repo.matchdays()
@@ -407,7 +429,9 @@ def _get_last_evaluated_md():
 def _build_md_score_section(md, match_repo, tip_repo, result_repo, snapshot_repo, user_repo):
     """Build the data dict for one matchday's PUNKTE JE SPIELER table."""
     md_matches = match_repo.by_matchday(md)
-    results_by_id = {r["match_id"]: r for r in result_repo.all()}
+    results_by_id = result_repo.all_by_id()
+    tips_dict = tip_repo.load_effective_dict()
+    snapshots_by_id = snapshot_repo.load_all()
     active = [
         m for m in md_matches
         if match_repo.is_locked(m) or results_by_id.get(m["match_id"], {}).get("status") == "final"
@@ -416,17 +440,20 @@ def _build_md_score_section(md, match_repo, tip_repo, result_repo, snapshot_repo
         return None
     users = [u for u in user_repo.all() if u["active"]]
     md_entries = _build_leaderboard_data(matchday_filter=md)
-    bonus_by_match = _compute_bonus_by_match(active, users, tip_repo, result_repo)
+    bonus_by_match = _compute_bonus_by_match(active, users, tip_repo, result_repo, tips_dict, results_by_id)
     user_match_scores = {}
     for u in users:
         uname = u["username"]
         user_match_scores[uname] = {}
         for m in active:
-            utip = tip_repo.get_user_tip(uname, m["match_id"])
-            result = result_repo.find(m["match_id"])
+            utip = tips_dict.get((uname, m["match_id"]))
+            result = results_by_id.get(m["match_id"])
             bd = None
             if result and result["status"] == "final" and utip and m["kickoff_at"]:
-                snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+                snap = snapshots_by_id.get(m["match_id"])
+                if snap is None:
+                    snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+                    snapshots_by_id[m["match_id"]] = snap
                 bd = calculate_score(
                     result["home_goals_actual"], result["away_goals_actual"],
                     utip["home_goals_tip"], utip["away_goals_tip"],
@@ -534,6 +561,8 @@ def tip_detail(match_id: str):
     got_bonus = False
     if result and result["status"] == "final" and match["kickoff_at"]:
         snap = snapshot_repo.get_or_create(match_id, match["kickoff_at"], tip_repo)
+        tips_dict = tip_repo.load_effective_dict()
+        results_by_id = {match_id: result}
         if tip:
             score_bd = calculate_score(
                 result["home_goals_actual"], result["away_goals_actual"],
@@ -541,10 +570,10 @@ def tip_detail(match_id: str):
                 tip["is_risk_pick"], match["is_germany_game"], snap,
             )
         all_active_users = [u for u in user_repo.all() if u["active"]]
-        bonus_by_match = _compute_bonus_by_match([match], all_active_users, tip_repo, result_repo)
+        bonus_by_match = _compute_bonus_by_match([match], all_active_users, tip_repo, result_repo, tips_dict, results_by_id)
         got_bonus = bonus_by_match.get(user, {}).get(match_id, False)
         for ou in [u for u in all_active_users if u["username"] != user]:
-            other_tip = tip_repo.get_user_tip(ou["username"], match_id)
+            other_tip = tips_dict.get((ou["username"], match_id))
             other_bd = None
             if other_tip:
                 other_bd = calculate_score(
@@ -788,19 +817,24 @@ def wrap_up():
         match_items.append({"match": m, "result": result})
 
     # Build per-user per-match score breakdown for started matches
-    # Tips visible once game started; scores only after result is final.
     users = [u for u in user_repo.all() if u["active"]]
-    bonus_by_match = _compute_bonus_by_match(active_matches, users, tip_repo, result_repo)
+    results_by_id = result_repo.all_by_id()
+    tips_dict = tip_repo.load_effective_dict()
+    snapshots_by_id = snapshot_repo.load_all()
+    bonus_by_match = _compute_bonus_by_match(active_matches, users, tip_repo, result_repo, tips_dict, results_by_id)
     user_match_scores = {}
     for user in users:
         uname = user["username"]
         user_match_scores[uname] = {}
         for m in active_matches:
-            tip = tip_repo.get_user_tip(uname, m["match_id"])
-            result = result_repo.find(m["match_id"])
+            tip = tips_dict.get((uname, m["match_id"]))
+            result = results_by_id.get(m["match_id"])
             bd = None
             if result and result["status"] == "final" and tip:
-                snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+                snap = snapshots_by_id.get(m["match_id"])
+                if snap is None:
+                    snap = snapshot_repo.get_or_create(m["match_id"], m["kickoff_at"], tip_repo)
+                    snapshots_by_id[m["match_id"]] = snap
                 bd = calculate_score(
                     result["home_goals_actual"], result["away_goals_actual"],
                     tip["home_goals_tip"], tip["away_goals_tip"],

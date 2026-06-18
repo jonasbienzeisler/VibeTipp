@@ -23,6 +23,10 @@ class SnapshotRepository:
         except (ValueError, KeyError):
             return None
 
+    def load_all(self) -> dict[str, dict]:
+        """Read snapshots.csv once; return {match_id: snapshot}. Use for bulk lookups."""
+        return {r["match_id"]: r for r in (self._parse(row) for row in read_csv(self._path)) if r}
+
     def get(self, match_id: str) -> dict | None:
         for row in read_csv(self._path):
             if row.get("match_id") == match_id:

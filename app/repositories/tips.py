@@ -74,12 +74,14 @@ class TipRepository:
         """Returns match_id of current risk pick for user in this matchday, or None."""
         matches = match_repo.by_matchday(matchday)
         match_ids = {m["match_id"] for m in matches}
-        for tip in reversed(self._all_raw()):
-            if tip["username"] == username and tip["match_id"] in match_ids and tip["is_risk_pick"]:
-                # Verify it's still the effective tip
-                effective = self.get_user_tip(username, tip["match_id"])
-                if effective and effective["is_risk_pick"]:
-                    return tip["match_id"]
+        all_tips = self._all_raw()  # single read — build effective map from it
+        effective: dict[str, dict] = {}
+        for tip in all_tips:
+            if tip["username"] == username and tip["match_id"] in match_ids:
+                effective[tip["match_id"]] = tip  # sorted by timestamp, last wins
+        for tip in effective.values():
+            if tip["is_risk_pick"]:
+                return tip["match_id"]
         return None
 
     def save_tip(self, username: str, match_id: str, home: int, away: int, is_risk: bool) -> dict:
@@ -114,3 +116,10 @@ class TipRepository:
         for tip in all_tips:
             seen[(tip["username"], tip["match_id"])] = tip
         return list(seen.values())
+
+    def load_effective_dict(self) -> dict:
+        """Read tips.csv once; return {(username, match_id): latest_tip}. Use for bulk lookups."""
+        seen: dict[tuple, dict] = {}
+        for tip in self._all_raw():
+            seen[(tip["username"], tip["match_id"])] = tip
+        return seen
