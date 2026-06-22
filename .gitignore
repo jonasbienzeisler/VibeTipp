@@ -25,6 +25,7 @@ data/adjustments.csv
 data/rarity_snapshots.csv
 data/audit.log
 data/player_results/
+data/leaderboard_cache.json
 data/*.lock
 data/matches_correct.csv
 

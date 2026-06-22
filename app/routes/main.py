@@ -50,21 +50,32 @@ def _compute_bonus_by_match(matches, users, tip_repo, result_repo, tips_dict=Non
     return bonus
 
 
-def _build_leaderboard_data(username_filter=None, matchday_filter=None):
-    """Build leaderboard entries for all (or filtered) users."""
+def _build_leaderboard_data(username_filter=None, matchday_filter=None, *,
+                            matches=None, users=None, results_by_id=None,
+                            tips_dict=None, snapshots_by_id=None, user_deltas=None):
+    """Build leaderboard entries for all (or filtered) users.
+
+    Pass pre-loaded data (matches, users, results_by_id, tips_dict, snapshots_by_id,
+    user_deltas) to avoid redundant CSV reads when building many matchdays at once.
+    """
     match_repo = current_app.match_repo
     tip_repo = current_app.tip_repo
     result_repo = current_app.result_repo
     snapshot_repo = current_app.snapshot_repo
     user_repo = current_app.user_repo
 
-    users = [u for u in user_repo.all() if u["active"]]
-    matches = match_repo.all() if not matchday_filter else match_repo.by_matchday(matchday_filter)
+    if users is None:
+        users = [u for u in user_repo.all() if u["active"]]
+    if matches is None:
+        matches = match_repo.all() if not matchday_filter else match_repo.by_matchday(matchday_filter)
 
     # Load all CSVs once per call — eliminates O(users × matches) file reads
-    results_by_id = result_repo.all_by_id()
-    tips_dict = tip_repo.load_effective_dict()
-    snapshots_by_id = snapshot_repo.load_all()
+    if results_by_id is None:
+        results_by_id = result_repo.all_by_id()
+    if tips_dict is None:
+        tips_dict = tip_repo.load_effective_dict()
+    if snapshots_by_id is None:
+        snapshots_by_id = snapshot_repo.load_all()
 
     finished_matches = [
         m for m in matches
@@ -119,7 +130,10 @@ def _build_leaderboard_data(username_filter=None, matchday_filter=None):
             elif bd.risk_result == "deduct":
                 risk_fail += 1
 
-        total_pts += current_app.adj_repo.get_user_delta(uname)
+        if user_deltas is not None:
+            total_pts += user_deltas.get(uname.lower(), 0.0)
+        else:
+            total_pts += current_app.adj_repo.get_user_delta(uname)
         bonus_pts = sum(1 for m in finished_matches if bonus_by_match.get(uname, {}).get(m["match_id"]))
         total_pts = round(total_pts + bonus_pts, 1)
 
@@ -425,20 +439,34 @@ def _get_last_evaluated_md():
     return None
 
 
-def _build_md_score_section(md, match_repo, tip_repo, result_repo, snapshot_repo, user_repo):
-    """Build the data dict for one matchday's PUNKTE JE SPIELER table."""
-    md_matches = match_repo.by_matchday(md)
-    results_by_id = result_repo.all_by_id()
-    tips_dict = tip_repo.load_effective_dict()
-    snapshots_by_id = snapshot_repo.load_all()
+def _build_md_score_section(md, match_repo, tip_repo, result_repo, snapshot_repo, user_repo, *,
+                            md_matches=None, users=None, results_by_id=None, tips_dict=None,
+                            snapshots_by_id=None, user_deltas=None, md_entries=None):
+    """Build the data dict for one matchday's PUNKTE JE SPIELER table.
+
+    Pass pre-loaded data to avoid re-reading the CSVs for every matchday.
+    """
+    if md_matches is None:
+        md_matches = match_repo.by_matchday(md)
+    if results_by_id is None:
+        results_by_id = result_repo.all_by_id()
+    if tips_dict is None:
+        tips_dict = tip_repo.load_effective_dict()
+    if snapshots_by_id is None:
+        snapshots_by_id = snapshot_repo.load_all()
     active = [
         m for m in md_matches
         if match_repo.is_locked(m) or results_by_id.get(m["match_id"], {}).get("status") == "final"
     ]
     if not active:
         return None
-    users = [u for u in user_repo.all() if u["active"]]
-    md_entries = _build_leaderboard_data(matchday_filter=md)
+    if users is None:
+        users = [u for u in user_repo.all() if u["active"]]
+    if md_entries is None:
+        md_entries = _build_leaderboard_data(
+            matchday_filter=md, matches=md_matches, users=users,
+            results_by_id=results_by_id, tips_dict=tips_dict,
+            snapshots_by_id=snapshots_by_id, user_deltas=user_deltas)
     bonus_by_match = _compute_bonus_by_match(active, users, tip_repo, result_repo, tips_dict, results_by_id)
     user_match_scores = {}
     for u in users:
@@ -466,42 +494,126 @@ def _build_md_score_section(md, match_repo, tip_repo, result_repo, snapshot_repo
     return {"matchday": md, "active_matches": active, "user_match_scores": user_match_scores, "md_entries": md_entries}
 
 
-@bp.route("/leaderboard")
-@login_required
-def leaderboard():
+def _serialize_section(sec: dict) -> dict:
+    """Reduce a md_score_section to JSON-safe primitives for the cache."""
+    def _ser_cell(cell):
+        tip = cell["tip"]
+        bd = cell["bd"]
+        return {
+            "tip": ({"home_goals_tip": tip["home_goals_tip"],
+                     "away_goals_tip": tip["away_goals_tip"],
+                     "is_risk_pick": tip["is_risk_pick"]} if tip else None),
+            "bd": ({"actual_home": bd.actual_home,
+                    "actual_away": bd.actual_away,
+                    "final_pts": bd.final_pts} if bd else None),
+            "has_bonus": cell["has_bonus"],
+        }
+
+    return {
+        "matchday": sec["matchday"],
+        "active_matches": [
+            {"match_id": m["match_id"], "home_team": m["home_team"],
+             "away_team": m["away_team"], "is_germany_game": m["is_germany_game"]}
+            for m in sec["active_matches"]
+        ],
+        "md_entries": sec["md_entries"],
+        "user_match_scores": {
+            uname: {mid: _ser_cell(cell) for mid, cell in cells.items()}
+            for uname, cells in sec["user_match_scores"].items()
+        },
+    }
+
+
+def build_leaderboard_payload() -> dict:
+    """Compute the full highscore payload (GESAMT + every matchday) in a single
+    pass, loading each CSV only once. Returns a JSON-serializable dict."""
     match_repo = current_app.match_repo
     tip_repo = current_app.tip_repo
     result_repo = current_app.result_repo
     snapshot_repo = current_app.snapshot_repo
     user_repo = current_app.user_repo
-    entries = _build_leaderboard_data()
-    matchdays = match_repo.matchdays()
-    last_evaluated_md = _get_last_evaluated_md()
-    md_score_sections = [
-        sec for md in matchdays
-        for sec in [_build_md_score_section(md, match_repo, tip_repo, result_repo, snapshot_repo, user_repo)]
-        if sec
-    ]
-    return render_template("leaderboard.html", entries=entries, matchdays=matchdays,
-                           current_matchday=None, last_evaluated_md=last_evaluated_md,
-                           md_score_sections=md_score_sections)
+    adj_repo = current_app.adj_repo
+
+    users = [u for u in user_repo.all() if u["active"]]
+    all_matches = match_repo.all()
+    results_by_id = result_repo.all_by_id()
+    tips_dict = tip_repo.load_effective_dict()
+    snapshots_by_id = snapshot_repo.load_all()
+
+    # Precompute per-user adjustment deltas once (avoids re-reading adjustments.csv per user/md)
+    user_deltas: dict[str, float] = {}
+    for r in adj_repo.all():
+        key = r["username"].lower()
+        user_deltas[key] = user_deltas.get(key, 0.0) + r["delta"]
+
+    shared = dict(users=users, results_by_id=results_by_id, tips_dict=tips_dict,
+                  snapshots_by_id=snapshots_by_id, user_deltas=user_deltas)
+
+    matchdays = sorted({m["matchday"] for m in all_matches})
+    matches_by_md: dict[int, list] = {}
+    for m in all_matches:
+        matches_by_md.setdefault(m["matchday"], []).append(m)
+
+    entries = _build_leaderboard_data(matches=all_matches, **shared)
+
+    md_entries_by_md: dict[str, list] = {}
+    md_sections: list[dict] = []
+    last_evaluated_md = None
+    for md in matchdays:
+        md_matches = matches_by_md.get(md, [])
+        md_entries = _build_leaderboard_data(matchday_filter=md, matches=md_matches, **shared)
+        md_entries_by_md[str(md)] = md_entries
+        sec = _build_md_score_section(
+            md, match_repo, tip_repo, result_repo, snapshot_repo, user_repo,
+            md_matches=md_matches, md_entries=md_entries, **shared)
+        if sec:
+            md_sections.append(_serialize_section(sec))
+        if any(results_by_id.get(m["match_id"], {}).get("status") == "final" for m in md_matches):
+            last_evaluated_md = md
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "matchdays": matchdays,
+        "last_evaluated_md": last_evaluated_md,
+        "entries": entries,
+        "md_entries_by_md": md_entries_by_md,
+        "md_sections": md_sections,
+    }
+
+
+def _get_leaderboard_payload() -> dict:
+    """Load the precomputed highscore payload; rebuild and cache it on a miss."""
+    cache = current_app.leaderboard_cache
+    payload = cache.load()
+    if payload is None:
+        payload = build_leaderboard_payload()
+        cache.save(payload)
+    return payload
+
+
+@bp.route("/leaderboard")
+@login_required
+def leaderboard():
+    payload = _get_leaderboard_payload()
+    return render_template("leaderboard.html",
+                           entries=payload["entries"],
+                           matchdays=payload["matchdays"],
+                           current_matchday=None,
+                           last_evaluated_md=payload.get("last_evaluated_md"),
+                           md_score_sections=payload["md_sections"])
 
 
 @bp.route("/leaderboard/<int:matchday>")
 @login_required
 def leaderboard_matchday(matchday: int):
-    match_repo = current_app.match_repo
-    tip_repo = current_app.tip_repo
-    result_repo = current_app.result_repo
-    snapshot_repo = current_app.snapshot_repo
-    user_repo = current_app.user_repo
-    entries = _build_leaderboard_data(matchday_filter=matchday)
-    matchdays = match_repo.matchdays()
-    last_evaluated_md = _get_last_evaluated_md()
-    sec = _build_md_score_section(matchday, match_repo, tip_repo, result_repo, snapshot_repo, user_repo)
-    md_score_sections = [sec] if sec else []
-    return render_template("leaderboard.html", entries=entries, matchdays=matchdays,
-                           current_matchday=matchday, last_evaluated_md=last_evaluated_md,
+    payload = _get_leaderboard_payload()
+    entries = payload.get("md_entries_by_md", {}).get(str(matchday), [])
+    md_score_sections = [s for s in payload["md_sections"] if s["matchday"] == matchday]
+    return render_template("leaderboard.html",
+                           entries=entries,
+                           matchdays=payload["matchdays"],
+                           current_matchday=matchday,
+                           last_evaluated_md=payload.get("last_evaluated_md"),
                            md_score_sections=md_score_sections)
 
 

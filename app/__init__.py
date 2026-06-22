@@ -10,6 +10,7 @@ from app.repositories.audit import AuditLog
 from app.repositories.adjustments import AdjustmentsRepository
 from app.repositories.player_results import PlayerResultsWriter
 from app.repositories.world_cup_picks import WorldCupPicksRepository
+from app.repositories.leaderboard_cache import LeaderboardCache
 
 
 def create_app(data_dir=None, secret_key=None) -> Flask:
@@ -34,6 +35,7 @@ def create_app(data_dir=None, secret_key=None) -> Flask:
     app.adj_repo = AdjustmentsRepository(_data_dir)
     app.player_results_writer = PlayerResultsWriter(_data_dir)
     app.wc_pick_repo = WorldCupPicksRepository(_data_dir)
+    app.leaderboard_cache = LeaderboardCache(_data_dir)
 
     from app.routes.auth import bp as auth_bp
     from app.routes.main import bp as main_bp

@@ -9,6 +9,8 @@ class MatchRepository:
     def __init__(self, data_dir: Path):
         self._path = data_dir / "matches.csv"
         ensure_csv_exists(self._path, HEADERS)
+        self._cache: list[dict] | None = None
+        self._cache_mtime = None
 
     def _parse(self, row: dict) -> dict:
         try:
@@ -28,9 +30,21 @@ class MatchRepository:
         }
 
     def all(self) -> list[dict]:
+        # matches.csv changes rarely (team-name edits / import). Cache the parsed +
+        # sorted result and invalidate automatically when the file's mtime changes.
+        # Safe because production runs a single process (Flask built-in server).
+        try:
+            mtime = self._path.stat().st_mtime_ns
+        except OSError:
+            mtime = None
+        if self._cache is not None and self._cache_mtime == mtime:
+            return self._cache
         rows = read_csv(self._path)
         matches = [self._parse(r) for r in rows if r.get("match_id")]
-        return sorted(matches, key=lambda m: (m["matchday"], m["kickoff_at"] or datetime.max.replace(tzinfo=timezone.utc)))
+        matches.sort(key=lambda m: (m["matchday"], m["kickoff_at"] or datetime.max.replace(tzinfo=timezone.utc)))
+        self._cache = matches
+        self._cache_mtime = mtime
+        return matches
 
     def find(self, match_id: str) -> dict | None:
         for m in self.all():

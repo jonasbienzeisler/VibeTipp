@@ -12,6 +12,16 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 _pending_imports: dict[str, dict] = {}
 
 
+def _recompute_all():
+    """Regenerate every derived artifact after points may have changed:
+    the per-user result txt files and the materialized highscore cache."""
+    current_app.player_results_writer.generate_all(
+        current_app.user_repo, current_app.match_repo, current_app.tip_repo,
+        current_app.result_repo, current_app.snapshot_repo, current_app.adj_repo,
+    )
+    current_app.leaderboard_cache.regenerate()
+
+
 def admin_required(f):
     from functools import wraps
     @wraps(f)
@@ -36,6 +46,19 @@ def index():
     matchdays = match_repo.matchdays()
     results = {r["match_id"]: r for r in result_repo.all()}
     users = user_repo.all()
+
+    # Categorize matches into locked / final / open for the three status cards.
+    locked_games, final_games, open_games = [], [], []
+    for m in match_repo.all():
+        r = results.get(m["match_id"])
+        if r and r["status"] == "final":
+            final_games.append({"m": m, "r": r, "game_status": "final"})
+        elif r and r["status"] == "locked":
+            locked_games.append({"m": m, "r": r, "game_status": "admin-locked"})
+        elif match_repo.is_locked(m):
+            locked_games.append({"m": m, "r": r, "game_status": "auto-locked"})
+        else:
+            open_games.append({"m": m, "r": r, "game_status": "open"})
     team_resolution_preview = get_resolution_preview(match_repo, result_repo)
     wc_picks_all = current_app.wc_pick_repo.all()
     wc_team_flags = _WC_TEAM_FLAGS
@@ -44,6 +67,9 @@ def index():
         matchdays=matchdays,
         match_repo=match_repo,
         results=results,
+        locked_games=locked_games,
+        final_games=final_games,
+        open_games=open_games,
         users=users,
         team_resolution_preview=team_resolution_preview,
         wc_picks_all=wc_picks_all,
@@ -143,10 +169,7 @@ def confirm_import(import_id: str):
     result_repo = current_app.result_repo
     result_repo.import_results(pending["rows"])
 
-    current_app.player_results_writer.generate_all(
-        current_app.user_repo, current_app.match_repo, current_app.tip_repo,
-        current_app.result_repo, current_app.snapshot_repo, current_app.adj_repo,
-    )
+    _recompute_all()
 
     count = len(pending["rows"])
     audit.result_import(user, count)
@@ -233,10 +256,7 @@ def set_match_score(match_id: str):
         "status": status,
     })
 
-    current_app.player_results_writer.generate_all(
-        current_app.user_repo, current_app.match_repo, current_app.tip_repo,
-        current_app.result_repo, current_app.snapshot_repo, current_app.adj_repo,
-    )
+    _recompute_all()
 
     current_app.audit.admin_action(
         session["username"],
@@ -342,10 +362,7 @@ def resolve_teams():
 @bp.post("/recalculate")
 @admin_required
 def recalculate():
-    current_app.player_results_writer.generate_all(
-        current_app.user_repo, current_app.match_repo, current_app.tip_repo,
-        current_app.result_repo, current_app.snapshot_repo, current_app.adj_repo,
-    )
+    _recompute_all()
     flash("Punkte neu berechnet.", "success")
     return redirect(url_for("admin.index"))
 
@@ -371,6 +388,7 @@ def adjust_user_points(username: str):
         return redirect(url_for("admin.index"))
 
     adj_repo.add(username, delta, note)
+    _recompute_all()
     current_app.audit.admin_action(
         session["username"],
         f"points_adjusted target={username} delta={delta} note={note}",
@@ -416,10 +434,7 @@ def award_world_cup_points():
             adj_repo.add(username, 15, f"WM-Sieger-Tipp: {team} – 3. Platz")
             awarded += 1
 
-    current_app.player_results_writer.generate_all(
-        current_app.user_repo, current_app.match_repo, current_app.tip_repo,
-        current_app.result_repo, current_app.snapshot_repo, current_app.adj_repo,
-    )
+    _recompute_all()
     current_app.audit.admin_action(
         session["username"],
         f"wc_points_awarded first={first} second={second} third={third} count={awarded}",
