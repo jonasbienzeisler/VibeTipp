@@ -101,46 +101,52 @@ def test_exact_beats_goal_diff():
 
 # ─── Total goals bonus (+1) ───────────────────────────────────
 
+# NOTE: the "Gesamttore" (total-goals) bonus was removed (commit c3c709a). The engine
+# never adds it — total_goals_pts is always 0. Per the SAV (Task 3) only the highest
+# base category counts: +4 exact / +3 diff / +2 tendency / 0 wrong.
+
 def test_total_goals_correct_tendency():
-    # 2+1=3, 3+0=3 → correct total, correct tendency
+    # 2:1 result, tip 3:0 → tendency only; no total-goals bonus
     bd = score(2, 1, 3, 0)
-    assert bd.total_goals_pts == 1
+    assert bd.total_goals_pts == 0
     assert bd.base_category == "tendency"
     assert bd.base_category_pts == 2
+    assert bd.pre_rarity_pts == 2.0
 
 def test_total_goals_wrong_tendency():
-    # 2+1=3, 1+2=3 → correct total, wrong tendency
+    # 2:1 result, tip 1:2 → wrong tendency → 0 (total goals irrelevant)
     bd = score(2, 1, 1, 2)
-    assert bd.total_goals_pts == 1
+    assert bd.total_goals_pts == 0
     assert bd.base_category == "none"
     assert bd.base_category_pts == 0
 
 def test_total_goals_with_exact():
-    # 2+1=3, tip=2:1 → exact (+4) + total (+1) = 5
+    # 2:1 result, tip 2:1 → exact (+4); no extra total-goals point
     bd = score(2, 1, 2, 1)
-    assert bd.total_goals_pts == 1
+    assert bd.total_goals_pts == 0
     assert bd.base_category_pts == 4
-    assert bd.pre_rarity_pts == 5.0
+    assert bd.pre_rarity_pts == 4.0
 
 def test_no_total_goals_bonus():
     bd = score(2, 1, 1, 0)   # tip total=1, actual total=3
     assert bd.total_goals_pts == 0
 
 def test_total_goals_draw_tip_draw_result():
-    # 0+0=0, 0+0=0 → exact draw + total
+    # 0:0 result, tip 0:0 → exact draw (+4); no total-goals point
     bd = score(0, 0, 0, 0)
-    assert bd.total_goals_pts == 1
+    assert bd.total_goals_pts == 0
     assert bd.base_category == "exact"
+    assert bd.pre_rarity_pts == 4.0
 
 
 # ─── Spec test cases ─────────────────────────────────────────
 
 def test_spec_2_1_tip_2_1():
-    # Exact + total goals = 4+1 = 5
+    # Exact result = 4 (no total-goals bonus)
     bd = score(2, 1, 2, 1)
     assert bd.base_category_pts == 4
-    assert bd.total_goals_pts == 1
-    assert bd.pre_rarity_pts == 5.0
+    assert bd.total_goals_pts == 0
+    assert bd.pre_rarity_pts == 4.0
 
 def test_spec_2_1_tip_1_0():
     # Diff correct (1=1) + no total goals → 3
@@ -151,27 +157,27 @@ def test_spec_2_1_tip_1_0():
     assert bd.pre_rarity_pts == 3.0
 
 def test_spec_2_1_tip_3_0():
-    # Tendency correct, diff wrong (1≠3), total 3=3 → 2+1 = 3
+    # Tendency correct, diff wrong (1≠3) → 2 (no total-goals bonus)
     bd = score(2, 1, 3, 0)
     assert bd.base_category == "tendency"
     assert bd.base_category_pts == 2
-    assert bd.total_goals_pts == 1
-    assert bd.pre_rarity_pts == 3.0
+    assert bd.total_goals_pts == 0
+    assert bd.pre_rarity_pts == 2.0
 
 def test_spec_2_1_tip_1_2():
-    # Wrong tendency, total 3=3 → 0+1 = 1
+    # Wrong tendency → 0 (no total-goals bonus)
     bd = score(2, 1, 1, 2)
     assert bd.base_category == "none"
     assert bd.base_category_pts == 0
-    assert bd.total_goals_pts == 1
-    assert bd.pre_rarity_pts == 1.0
+    assert bd.total_goals_pts == 0
+    assert bd.pre_rarity_pts == 0.0
 
 def test_spec_1_1_tip_1_1():
-    # Exact draw + total → 4+1 = 5
+    # Exact draw = 4 (no total-goals bonus)
     bd = score(1, 1, 1, 1)
     assert bd.base_category_pts == 4
-    assert bd.total_goals_pts == 1
-    assert bd.pre_rarity_pts == 5.0
+    assert bd.total_goals_pts == 0
+    assert bd.pre_rarity_pts == 4.0
 
 def test_spec_1_1_tip_0_0():
     # Draw tendency, no total (0≠2) → 2
@@ -346,13 +352,13 @@ def test_risk_spec_correct_4pts_gives_8():
     bd2 = score(3, 1, 2, 0, risk=True)  # goal_diff (3), no total → doubled = 6
     assert bd2.final_pts == 6.0
 
-def test_risk_spec_correct_5pts_gives_10():
-    # exact(4) + total(1) = 5, doubled = 10
+def test_risk_spec_exact_doubles_to_8():
+    # exact(4), no total-goals bonus, risk doubles → 8
     bd = score(2, 1, 2, 1, risk=True)
     assert bd.base_category_pts == 4
-    assert bd.total_goals_pts == 1
-    assert bd.pre_rarity_pts == 5.0
-    assert bd.final_pts == 10.0
+    assert bd.total_goals_pts == 0
+    assert bd.pre_rarity_pts == 4.0
+    assert bd.final_pts == 8.0
 
 def test_risk_spec_falsch_minus_10():
     bd = score(2, 1, 0, 1, risk=True)
@@ -362,7 +368,7 @@ def test_risk_draw_result_draw_tip_correct():
     # 1:1, tip 1:1 → exact, risk correct → doubles
     bd = score(1, 1, 1, 1, risk=True)
     assert bd.risk_result == "double"
-    assert bd.final_pts == 10.0  # (4+1)*2
+    assert bd.final_pts == 8.0  # 4*2 (no total-goals bonus)
 
 def test_risk_draw_result_draw_tip_2_2_correct():
     # 1:1, tip 2:2 → tendency correct, risk doubles
@@ -386,10 +392,13 @@ def test_germany_risk_correct():
     # pts_after_germany = base_pts * 2; then risk doubles again
     assert bd.final_pts == bd_plain.base_pts * 2 * 2
 
-def test_germany_risk_wrong_minus_10():
-    # Germany doesn't affect the -10 penalty
+def test_germany_risk_wrong_minus_20():
+    # Germany risk-fail is -20: the Germany x2 applies to the risk penalty too.
+    # Deliberate design (commit 539b8d9). Non-Germany risk-fail stays -10.
     bd = score(2, 1, 0, 1, risk=True, germany=True)
-    assert bd.final_pts == -10.0
+    assert bd.final_pts == -20.0
+    bd_plain = score(2, 1, 0, 1, risk=True, germany=False)
+    assert bd_plain.final_pts == -10.0
 
 
 # ─── Potential rarity ─────────────────────────────────────────
