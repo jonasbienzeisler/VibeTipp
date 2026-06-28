@@ -3,8 +3,9 @@ import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 from flask import (Blueprint, render_template, request, redirect, url_for,
-                   session, flash, current_app)
+                   session, flash, current_app, jsonify)
 from app.admin.importer import parse_csv_upload, backup_results, validate_match_ids
+from app.admin import data_editor
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -63,6 +64,8 @@ def index():
     wc_picks_all = current_app.wc_pick_repo.all()
     wc_team_flags = _WC_TEAM_FLAGS
     wc_pick_locked = current_app.wc_pick_repo.is_pick_locked()
+    health_issues = data_editor.run_health_checks(match_repo, result_repo)
+    germany_fixable = any(i["code"] in ("germany_flag_missing", "germany_flag_extra") for i in health_issues)
     return render_template("admin/index.html",
         matchdays=matchdays,
         match_repo=match_repo,
@@ -75,6 +78,9 @@ def index():
         wc_picks_all=wc_picks_all,
         wc_team_flags=wc_team_flags,
         wc_pick_locked=wc_pick_locked,
+        health_issues=health_issues,
+        germany_fixable=germany_fixable,
+        editable_files=data_editor.EDITABLE_FILES,
     )
 
 
@@ -608,4 +614,76 @@ def create_user():
         f"user_created target={username} role={role}",
     )
     flash(f"Nutzer '{username}' erfolgreich angelegt.", "success")
+    return redirect(url_for("admin.index"))
+
+
+# ─────────────────── Raw data-file editor (matches.csv, results.csv, …) ───────────────────
+
+@bp.get("/data/<key>/raw")
+@admin_required
+def data_file_raw(key: str):
+    """Return the raw content + guidance of an editable data file (JSON, for the modal)."""
+    meta = data_editor.get_file_meta(key)
+    if not meta:
+        return jsonify({"error": "Unbekannte Datei."}), 404
+    data_dir = current_app.config["DATA_DIR"]
+    content = data_editor.read_file_content(data_dir, key)
+    # Surface current warnings so the admin sees issues before editing.
+    _, warnings = data_editor.validate_content(key, content)
+    return jsonify({
+        "key": key,
+        "filename": meta["filename"],
+        "label": meta["label"],
+        "guidance": meta["guidance"],
+        "content": content,
+        "warnings": warnings,
+    })
+
+
+@bp.post("/data/<key>/validate")
+@admin_required
+def data_file_validate(key: str):
+    """Validate edited content without saving (live check)."""
+    meta = data_editor.get_file_meta(key)
+    if not meta:
+        return jsonify({"error": "Unbekannte Datei."}), 404
+    content = request.form.get("content", "")
+    errors, warnings = data_editor.validate_content(key, content)
+    return jsonify({"ok": not errors, "errors": errors, "warnings": warnings})
+
+
+@bp.post("/data/<key>")
+@admin_required
+def data_file_save(key: str):
+    """Validate, back up and atomically write an edited data file."""
+    meta = data_editor.get_file_meta(key)
+    if not meta:
+        return jsonify({"error": "Unbekannte Datei."}), 404
+    data_dir = current_app.config["DATA_DIR"]
+    content = request.form.get("content", "")
+    ok, errors, warnings, backup = data_editor.save_file_content(data_dir, key, content)
+    if not ok:
+        return jsonify({"ok": False, "errors": errors, "warnings": warnings}), 422
+
+    if meta.get("recompute"):
+        _recompute_all()
+    current_app.audit.admin_action(
+        session["username"], f"data_file_saved file={meta['filename']} backup={backup}"
+    )
+    return jsonify({"ok": True, "errors": [], "warnings": warnings, "backup": backup})
+
+
+@bp.post("/fix-germany")
+@admin_required
+def fix_germany_flags():
+    """Auto-correct is_germany_game from team names (1 iff a team is 'Deutschland')."""
+    match_repo = current_app.match_repo
+    changed = match_repo.autofix_germany_flags()
+    if changed:
+        _recompute_all()
+        current_app.audit.admin_action(session["username"], f"germany_flags_fixed count={changed}")
+        flash(f"{changed} Spiel{'e' if changed != 1 else ''} korrigiert (Deutschland-Markierung).",
+              "success")
+    else:
+        flash("Alle Deutschland-Markierungen waren bereits korrekt.", "info")
     return redirect(url_for("admin.index"))

@@ -61,6 +61,44 @@
   </form>
 </div>
 
+<!-- Data health / warnings banner -->
+{% if health_issues %}
+<div class="card" style="border-color:var(--amber,#f59e0b);margin-bottom:0.8rem;">
+  <div class="card-title" style="color:var(--amber,#f59e0b);">⚠ DATEN-WARNUNGEN <span style="color:rgba(255,255,255,0.4)">({{ health_issues|length }})</span></div>
+  <p class="card-desc" style="font-size:0.45rem;">Automatisch erkannte Probleme. Über »DATEN BEARBEITEN« korrigierbar.</p>
+  <div style="display:flex;flex-direction:column;gap:0.2rem;margin-top:0.4rem;">
+    {% for issue in health_issues %}
+    <div style="font-size:0.46rem;display:flex;gap:0.4rem;align-items:flex-start;">
+      <span style="flex-shrink:0;">{% if issue.severity == 'error' %}🛑{% elif issue.severity == 'warning' %}⚠{% else %}ℹ{% endif %}</span>
+      <span style="color:{% if issue.severity == 'error' %}var(--red){% elif issue.severity == 'warning' %}var(--amber,#f59e0b){% else %}rgba(255,255,255,0.55){% endif %};">{{ issue.message }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% if germany_fixable %}
+  <form method="post" action="{{ url_for('admin.fix_germany_flags') }}" style="margin-top:0.5rem;">
+    <button type="submit" class="btn btn-sm btn-primary">🇩🇪 DEUTSCHLAND-SPIELE AUTOMATISCH KORRIGIEREN</button>
+  </form>
+  {% endif %}
+</div>
+{% else %}
+<div class="card" style="border-color:var(--green);margin-bottom:0.8rem;">
+  <div class="card-title" style="color:var(--green);">✓ DATEN OK</div>
+  <p class="card-desc" style="font-size:0.45rem;">Keine Probleme erkannt.</p>
+</div>
+{% endif %}
+
+<!-- Raw data-file editor -->
+<div class="card" style="margin-bottom:0.8rem;">
+  <div class="card-title">🗂 DATEN BEARBEITEN</div>
+  <p class="card-desc" style="font-size:0.45rem;">CSV-Dateien direkt öffnen, prüfen und korrigieren. Sicherung erfolgt automatisch.</p>
+  <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.4rem;">
+    {% for key, meta in editable_files.items() %}
+    <button type="button" class="btn btn-sm btn-secondary" onclick="openDataEditor('{{ key }}')">✎ {{ meta.label }}</button>
+    {% endfor %}
+    <button type="button" class="btn btn-sm btn-secondary" onclick="openDataEditor('matches')">🇩🇪 Deutschland-Flag setzen</button>
+  </div>
+</div>
+
 <!-- Team names form — inputs throughout the page associate via form="team-names-form" -->
 <form id="team-names-form" method="post" action="{{ url_for('admin.save_all_team_names') }}"></form>
 
@@ -322,7 +360,97 @@ M003;;; scheduled</pre>
   </div>
 </div>
 
+<!-- Data-file editor modal -->
+<div id="modal-data-editor" class="info-modal" style="display:none" onclick="if(event.target===this)closeModal('modal-data-editor')">
+  <div class="info-modal-box" style="max-width:920px;width:94vw;display:block;padding:1rem;">
+    <button class="info-modal-close" onclick="closeModal('modal-data-editor')">✕</button>
+    <div class="info-modal-title" id="de-title">DATEI BEARBEITEN</div>
+    <div id="de-guidance" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:4px;padding:0.5rem 0.6rem;margin:0.5rem 0;font-size:0.45rem;line-height:1.5;"></div>
+    <textarea id="de-content" spellcheck="false" wrap="off"
+      style="width:100%;height:46vh;font-family:monospace;font-size:0.62rem;line-height:1.35;background:#0a0a12;color:#d6e2ff;border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:0.5rem;white-space:pre;overflow:auto;"></textarea>
+    <div id="de-feedback" style="font-size:0.46rem;margin-top:0.4rem;max-height:18vh;overflow:auto;"></div>
+    <div style="display:flex;gap:0.4rem;margin-top:0.5rem;align-items:center;">
+      <button type="button" class="btn btn-sm btn-secondary" onclick="validateDataEditor()">✓ PRÜFEN</button>
+      <button type="button" class="btn btn-sm btn-primary" id="de-save-btn" onclick="saveDataEditor()">💾 SPEICHERN</button>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('modal-data-editor')">ABBRECHEN</button>
+      <span id="de-status" style="font-size:0.45rem;color:rgba(255,255,255,0.5);"></span>
+    </div>
+  </div>
+</div>
+
 <script>
+const DE_STATE = { key: null };
+
+function deRenderFeedback(data) {
+  const fb = document.getElementById('de-feedback');
+  let html = '';
+  (data.errors || []).forEach(e => {
+    html += `<div style="color:var(--red);white-space:pre-wrap;">🛑 ${escapeHtml(e)}</div>`;
+  });
+  (data.warnings || []).forEach(w => {
+    html += `<div style="color:var(--amber,#f59e0b);">⚠ ${escapeHtml(w)}</div>`;
+  });
+  if (!html && data.checked) html = '<div style="color:var(--green);">✓ Keine Fehler. Speichern möglich.</div>';
+  fb.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+function openDataEditor(key) {
+  DE_STATE.key = key;
+  document.getElementById('de-feedback').innerHTML = '';
+  document.getElementById('de-status').textContent = 'Lädt …';
+  document.getElementById('de-content').value = '';
+  openModal('modal-data-editor');
+  fetch(`/admin/data/${encodeURIComponent(key)}/raw`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.error) { document.getElementById('de-status').textContent = d.error; return; }
+      document.getElementById('de-title').textContent = d.label.toUpperCase();
+      document.getElementById('de-guidance').innerHTML =
+        '<strong>Bitte beachten:</strong><ul style="margin:0.3rem 0 0 0.9rem;padding:0;">' +
+        d.guidance.map(g => `<li>${escapeHtml(g)}</li>`).join('') + '</ul>';
+      document.getElementById('de-content').value = d.content;
+      document.getElementById('de-status').textContent = '';
+      deRenderFeedback({errors: [], warnings: d.warnings || [], checked: true});
+    })
+    .catch(() => { document.getElementById('de-status').textContent = 'Fehler beim Laden.'; });
+}
+
+function validateDataEditor() {
+  const body = new URLSearchParams({content: document.getElementById('de-content').value});
+  document.getElementById('de-status').textContent = 'Prüft …';
+  return fetch(`/admin/data/${encodeURIComponent(DE_STATE.key)}/validate`, {
+    method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body
+  }).then(r => r.json()).then(d => {
+    d.checked = true; deRenderFeedback(d);
+    document.getElementById('de-status').textContent = d.ok ? '' : 'Fehler gefunden.';
+    return d.ok;
+  });
+}
+
+function saveDataEditor() {
+  validateDataEditor().then(ok => {
+    if (!ok) return;
+    if (!confirm('Datei wirklich speichern? Eine Sicherung wird automatisch angelegt.')) return;
+    const body = new URLSearchParams({content: document.getElementById('de-content').value});
+    document.getElementById('de-status').textContent = 'Speichert …';
+    fetch(`/admin/data/${encodeURIComponent(DE_STATE.key)}`, {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body
+    }).then(r => r.json()).then(d => {
+      if (d.ok) {
+        document.getElementById('de-status').textContent = 'Gespeichert' + (d.backup ? ` (Sicherung: ${d.backup})` : '') + ' — lädt neu …';
+        setTimeout(() => window.location.reload(), 800);
+      } else {
+        deRenderFeedback(d);
+        document.getElementById('de-status').textContent = 'Nicht gespeichert — bitte Fehler beheben.';
+      }
+    });
+  });
+}
+
 // Highlight placeholder team names (italic gold) so they stand out from real names
 (function() {
   const PLACEHOLDER = /Sieger|Verlierer|Dritter|Gruppe|Platz|TBD/i;

@@ -23,11 +23,19 @@ data/results.csv
 data/users.txt
 data/adjustments.csv
 data/rarity_snapshots.csv
+data/world_cup_picks.csv
+data/wc_pick_locked.txt
 data/audit.log
 data/player_results/
 data/leaderboard_cache.json
 data/*.lock
 data/matches_correct.csv
+
+# Local test-instance seeding tooling (contains participant tip data)
+sim/
+scripts/live_tips_raw.txt
+scripts/seed_local_instance.py
+scripts/parse_and_seed_tips.py
 
 # OS
 .DS_Store

@@ -80,6 +80,24 @@ class MatchRepository:
                 return md
         return matchdays[-1] if matchdays else 1
 
+    def autofix_germany_flags(self) -> int:
+        """Set is_germany_game=1 exactly when a team is 'Deutschland', else 0.
+
+        Safe and fully derivable from team names. Returns the number of rows changed.
+        """
+        from app.repositories.base import read_csv, write_csv
+        rows = read_csv(self._path)
+        changed = 0
+        for row in rows:
+            want = "1" if "Deutschland" in (row.get("home_team", ""), row.get("away_team", "")) else "0"
+            if row.get("is_germany_game", "0") != want:
+                row["is_germany_game"] = want
+                changed += 1
+        if changed:
+            write_csv(self._path, HEADERS, rows)
+            self._cache = None
+        return changed
+
     def update_team_names(self, match_id: str, home_team: str = None, away_team: str = None) -> None:
         """Update home_team and/or away_team for a match in matches.csv (atomic write)."""
         from app.repositories.base import read_csv, write_csv
